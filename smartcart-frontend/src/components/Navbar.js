@@ -140,6 +140,17 @@ const styles = `
     transform: translateY(-1px);
   }
 
+  .nav-btn-admin {
+    background: #9C27B0;
+    color: #fff;
+    border: none;
+  }
+
+  .nav-btn-admin:hover {
+    background: #7B1FA2;
+    transform: translateY(-1px);
+  }
+
   .nav-user {
     font-size: 10px;
     letter-spacing: 2px;
@@ -183,9 +194,14 @@ export default function Navbar() {
             {[
               { to: "/", label: "Home" },
               { to: "/products", label: "Products" },
+              // ✅ Shfaq Admin link vetëm për admin
+              ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin" }] : []),
             ].map(({ to, label }) => (
               <li key={to}>
-                <Link to={to} className={`nav-link ${location.pathname === to ? "active" : ""}`}>
+                <Link
+                  to={to}
+                  className={`nav-link ${location.pathname === to ? "active" : ""}`}
+                >
                   {label}
                 </Link>
               </li>
@@ -201,12 +217,27 @@ export default function Navbar() {
             {isAuthenticated ? (
               <>
                 <span className="nav-user">{user?.name?.split(" ")[0]}</span>
-                <button className="nav-btn nav-btn-outline" onClick={handleLogout}>Logout</button>
+                {/* ✅ Shfaq Admin Dashboard buton vetëm për admin */}
+                {user?.role === "admin" && (
+                  <button
+                    className="nav-btn nav-btn-admin"
+                    onClick={() => navigate("/admin")}
+                  >
+                    🛡️ Admin
+                  </button>
+                )}
+                <button className="nav-btn nav-btn-outline" onClick={handleLogout}>
+                  Logout
+                </button>
               </>
             ) : (
               <>
-                <button className="nav-btn nav-btn-outline" onClick={() => navigate("/login")}>Login</button>
-                <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")}>Register</button>
+                <button className="nav-btn nav-btn-outline" onClick={() => navigate("/login")}>
+                  Login
+                </button>
+                <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")}>
+                  Register
+                </button>
               </>
             )}
           </div>

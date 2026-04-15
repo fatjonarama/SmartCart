@@ -1,70 +1,127 @@
-# Getting Started with Create React App
+# SmartCart E-Commerce API
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+SmartCart është një aplikacion e-commerce i ndërtuar me teknologji moderne web.
 
-## Available Scripts
+## Teknologjitë
 
-In the project directory, you can run:
+### Backend
+- **Express.js** — Node.js framework
+- **MySQL** + Sequelize ORM
+- **MongoDB** + Mongoose ODM
+- **JWT** — Authentication
+- **Swagger/OpenAPI 3.0** — API Documentation
+- **Winston + Morgan** — Logging
+- **Helmet + Rate Limiting** — Security
+- **node-cache** — Caching
 
-### `npm start`
+### Frontend
+- **React.js** — UI Framework
+- **React Router** — Navigation
+- **Axios** — HTTP Client
+- **React Toastify** — Notifications
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Instalimi
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 1. Klono projektin
+```bash
+git clone https://github.com/YllkaBerisha11/SmartCart.git
+cd SmartCart
+```
 
-### `npm test`
+### 2. Backend Setup
+```bash
+cd smartcart-backend
+npm install
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 3. Krijo `.env` fajllin
+```env
+PORT=5000
+JWT_SECRET=smartcart_jwt_secret_2024
+DB_HOST=localhost
+DB_NAME=smartcart
+DB_USER=root
+DB_PASS=
+MONGO_URI=mongodb+srv://...
+```
 
-### `npm run build`
+### 4. Frontend Setup
+```bash
+cd smartcart-frontend
+npm install
+npm start
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 5. Fillo serverin
+```bash
+cd smartcart-backend
+node app.js
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## API Endpoints
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Users `/api/v1/users`
+| Method | Endpoint | Përshkrimi | Auth |
+|--------|----------|------------|------|
+| POST | /register | Regjistro user | Public |
+| POST | /login | Login + JWT | Public |
+| GET | /profile | Profili im | User |
+| PUT | /profile | Përditëso profilin | User |
+| GET | / | Të gjithë users | Admin |
+| DELETE | /:id | Fshi user | Admin |
 
-### `npm run eject`
+### Products `/api/v1/products`
+| Method | Endpoint | Përshkrimi | Auth |
+|--------|----------|------------|------|
+| GET | / | Të gjitha produktet | Public |
+| GET | /:id | Një produkt | Public |
+| POST | / | Krijo produkt | Admin |
+| PUT | /:id | Përditëso produkt | Admin |
+| DELETE | /:id | Fshi produkt | Admin |
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Orders `/api/v1/orders`
+| Method | Endpoint | Përshkrimi | Auth |
+|--------|----------|------------|------|
+| GET | / | Të gjitha orders | Admin |
+| GET | /my | Orders e mia | User |
+| GET | /:id | Një order | User/Admin |
+| POST | / | Krijo order | User |
+| PUT | /:id | Ndrysho status | Admin |
+| DELETE | /:id | Fshi order | Admin |
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Stats `/api/v1/stats`
+| Method | Endpoint | Përshkrimi | Auth |
+|--------|----------|------------|------|
+| GET | /overview | Statistikat | Admin |
+| GET | /orders-by-month | Orders/muaj | Admin |
+| GET | /users-by-role | Users/rol | Admin |
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Swagger Dokumentacion 
+## Arkitektura
+Sistemi përdor **MVC Architecture** me ndarje të qartë të shtresave:
+- **Presentation Layer** — React.js Frontend
+- **Business Logic Layer** — Express.js Routes + Middleware
+- **Persistence Layer** — MySQL (Sequelize) + MongoDB (Mongoose)
+- **Integration Layer** — JWT Auth + Swagger + Logging
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Siguria
+- JWT Authentication me role-based authorization
+- Helmet.js për HTTP security headers
+- Rate Limiting — 100 kërkesa/15 minuta
+- Joi Validation për të gjitha inputs
+- bcryptjs për enkriptim të fjalëkalimeve
 
-## Learn More
+## Databaza
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### MySQL Tables
+- `users` — përdoruesit me role (user/admin)
+- `products` — produktet me category dhe stock
+- `orders` — porositë me status
+- `orderitems` — artikujt e porosive
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### MongoDB Collections
+- `reviews` — vlerësimet e produkteve
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Ekipi
+- **Yllka Berisha** — Full Stack Developer
+- **Fatjona Rama** — Full Stack Developer

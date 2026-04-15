@@ -7,18 +7,21 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Ngarko token-in nga localStorage kur hapet app-i
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
       try {
         const payload = JSON.parse(atob(storedToken.split(".")[1]));
-        // Kontrollo nëse token-i ka skaduar
         if (payload.exp * 1000 > Date.now()) {
           setToken(storedToken);
-          setUser({ id: payload.id, email: payload.email, name: payload.name });
+          // ✅ SHTOHET role
+          setUser({ 
+            id: payload.id, 
+            email: payload.email, 
+            name: payload.name,
+            role: payload.role
+          });
         } else {
-          // Token skadoi, pastro
           localStorage.removeItem("token");
         }
       } catch {
@@ -32,7 +35,13 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", tokenFromServer);
     const payload = JSON.parse(atob(tokenFromServer.split(".")[1]));
     setToken(tokenFromServer);
-    setUser({ id: payload.id, email: payload.email, name: payload.name });
+    // ✅ SHTOHET role
+    setUser({ 
+      id: payload.id, 
+      email: payload.email, 
+      name: payload.name,
+      role: payload.role
+    });
   };
 
   const logout = () => {
@@ -50,7 +59,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Custom hook për përdorim të lehtë
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth duhet të përdoret brenda AuthProvider");

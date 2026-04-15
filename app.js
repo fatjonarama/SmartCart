@@ -1,10 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
-require("dotenv").config();
+const morgan = require("morgan");
+const logger = require("./config/logger");
 
 const app = express();
 
@@ -19,24 +21,34 @@ const apiLimiter = rateLimit({
 app.use("/api/", apiLimiter);
 
 // --- 2. MIDDLEWARES ---
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:3001"],
+  credentials: true
+}));
 app.use(express.json());
 
-// --- 3. SWAGGER DOKUMENTACION ---
+// --- 3. LOGGING ---
+app.use(morgan("combined", {
+  stream: { write: (message) => logger.info(message.trim()) }
+}));
+
+// --- 4. SWAGGER DOKUMENTACION ---
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// --- 4. ROUTES me Versioning v1 ---
+// --- 5. ROUTES me Versioning v1 ---
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const statsRoutes = require("./routes/statsRoutes");
 
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/reviews", reviewRoutes);
+app.use("/api/v1/stats", statsRoutes);
 
-// --- 5. ROOT ---
+// --- 6. ROOT ---
 app.get("/", (req, res) => {
   res.json({
     message: "SmartCart API is running!",
@@ -45,15 +57,15 @@ app.get("/", (req, res) => {
   });
 });
 
-// --- 6. GLOBAL ERROR HANDLER ---
+// --- 7. GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
-  console.error("!!! GABIM:", err.message);
+  logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method}`);
   res.status(err.status || 500).json({ 
     message: err.message || "Diçka shkoi keq në server!" 
   });
 });
 
-// --- 7. DATABASE & SERVER START ---
+// --- 8. DATABASE & SERVER START ---
 const sequelize = require("./config/db");
 const connectMongo = require("./config/mongodb");
 const PORT = process.env.PORT || 5000;

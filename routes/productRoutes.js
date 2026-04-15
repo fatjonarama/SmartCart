@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
+const NodeCache = require("node-cache");
 const Product = require("../models/Product");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+
+// Cache 5 minuta
+const cache = new NodeCache({ stdTTL: 300 });
 
 // Joi Validation Schema
 const productSchema = Joi.object({
@@ -38,8 +42,31 @@ const productSchema = Joi.object({
  */
 router.get("/", async (req, res) => {
   try {
+    // CACHING
+    const cachedProducts = cache.get("all_products");
+    if (cachedProducts) {
+      return res.json({
+        source: "cache",
+        data: cachedProducts,
+        _links: {
+          self: { href: "/api/v1/products" },
+          create: { href: "/api/v1/products", method: "POST" },
+        },
+      });
+    }
+
     const products = await Product.findAll();
-    res.json(products);
+    cache.set("all_products", products);
+
+    // HATEOAS
+    res.json({
+      source: "database",
+      data: products,
+      _links: {
+        self: { href: "/api/v1/products" },
+        create: { href: "/api/v1/products", method: "POST" },
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -65,9 +92,37 @@ router.get("/", async (req, res) => {
  */
 router.get("/:id", async (req, res) => {
   try {
+    const cacheKey = `product_${req.params.id}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        source: "cache",
+        data: cached,
+        _links: {
+          self: { href: `/api/v1/products/${req.params.id}` },
+          update: { href: `/api/v1/products/${req.params.id}`, method: "PUT" },
+          delete: { href: `/api/v1/products/${req.params.id}`, method: "DELETE" },
+          all: { href: "/api/v1/products" },
+        },
+      });
+    }
+
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
-    res.json(product);
+
+    cache.set(cacheKey, product);
+
+    // HATEOAS
+    res.json({
+      source: "database",
+      data: product,
+      _links: {
+        self: { href: `/api/v1/products/${req.params.id}` },
+        update: { href: `/api/v1/products/${req.params.id}`, method: "PUT" },
+        delete: { href: `/api/v1/products/${req.params.id}`, method: "DELETE" },
+        all: { href: "/api/v1/products" },
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -99,6 +154,8 @@ router.get("/:id", async (req, res) => {
  *                 type: string
  *               stock:
  *                 type: integer
+ *               category:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Produkti u krijua
@@ -113,7 +170,21 @@ router.post("/", protect, authorizeRoles("admin"), async (req, res) => {
 
   try {
     const product = await Product.create(req.body);
-    res.status(201).json(product);
+
+    // Pastro cache
+    cache.del("all_products");
+
+    // HATEOAS
+    res.status(201).json({
+      message: "✅ Produkti u krijua!",
+      data: product,
+      _links: {
+        self: { href: `/api/v1/products/${product.id}` },
+        all: { href: "/api/v1/products" },
+        update: { href: `/api/v1/products/${product.id}`, method: "PUT" },
+        delete: { href: `/api/v1/products/${product.id}`, method: "DELETE" },
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -146,8 +217,23 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
+
     await product.update(req.body);
-    res.json({ message: "✅ Produkti u përditësua!", product });
+
+    // Pastro cache
+    cache.del("all_products");
+    cache.del(`product_${req.params.id}`);
+
+    // HATEOAS
+    res.json({
+      message: "✅ Produkti u përditësua!",
+      data: product,
+      _links: {
+        self: { href: `/api/v1/products/${req.params.id}` },
+        all: { href: "/api/v1/products" },
+        delete: { href: `/api/v1/products/${req.params.id}`, method: "DELETE" },
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -177,8 +263,21 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
+
     await product.destroy();
-    res.json({ message: "✅ Produkti u fshi!" });
+
+    // Pastro cache
+    cache.del("all_products");
+    cache.del(`product_${req.params.id}`);
+
+    // HATEOAS
+    res.json({
+      message: "✅ Produkti u fshi!",
+      _links: {
+        all: { href: "/api/v1/products" },
+        create: { href: "/api/v1/products", method: "POST" },
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

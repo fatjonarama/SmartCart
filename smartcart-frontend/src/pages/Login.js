@@ -239,8 +239,8 @@ export default function Login() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await axios.post("http://localhost:5000/api/users/login", { email, password });
-      login(res.data.token);
+     const res = await axios.post("http://localhost:5000/api/v1/users/login", { email, password });
+      login(res.data.token, res.data.user);
       navigate("/products");
     } catch (err) {
       setMessage(err.response?.data?.message || "Login dështoi!");
