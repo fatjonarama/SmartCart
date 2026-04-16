@@ -420,8 +420,7 @@ export default function Cart() {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:5000/api/orders",
-        {
+        "http://localhost:5000/api/v1/orders",        {
           total_price: cartTotal.toFixed(2),
           items: cart.map(item => ({
             product_id: item.id,
