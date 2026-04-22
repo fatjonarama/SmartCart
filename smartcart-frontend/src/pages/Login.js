@@ -3,6 +3,16 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// ✅ MATERIAL UI IMPORTS
+import { 
+  Alert, 
+  CircularProgress, 
+  Snackbar,
+  Chip
+} from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+
+
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
 
@@ -161,18 +171,16 @@ const styles = `
     box-sizing: border-box;
   }
 
+  .form-input.error { border-bottom-color: #E57373; }
   .form-input::placeholder { color: rgba(245,240,232,0.2); }
   .form-input:focus { border-bottom-color: #C9A84C; }
 
-  .form-error {
-    padding: 14px 20px;
-    background: rgba(201,68,68,0.08);
-    border-left: 2px solid #C94444;
-    color: #E88080;
-    font-size: 12px;
-    margin-bottom: 28px;
-    font-weight: 300;
-    letter-spacing: 0.5px;
+  .field-error {
+    color: #E57373;
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-top: 6px;
+    display: block;
   }
 
   .submit-btn {
@@ -189,6 +197,10 @@ const styles = `
     cursor: pointer;
     transition: all 0.3s;
     margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
   }
 
   .submit-btn:hover:not(:disabled) {
@@ -231,17 +243,47 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+
+  // ✅ DYNAMIC FORM VALIDATION STATE
+  const [errors, setErrors] = useState({ email: "", password: "" });
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  // ✅ REAL-TIME VALIDATION
+  const validateField = (name, value) => {
+    let error = "";
+    if (name === "email") {
+      if (!value) error = "Email-i është i detyrueshëm!";
+      else if (!/\S+@\S+\.\S+/.test(value)) error = "Email-i nuk është i vlefshëm!";
+    }
+    if (name === "password") {
+      if (!value) error = "Fjalëkalimi është i detyrueshëm!";
+      else if (value.length < 6) error = "Fjalëkalimi duhet të ketë të paktën 6 karaktere!";
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) { setMessage("Ju lutem plotësoni të gjitha fushat!"); return; }
+    // Validate all fields
+    validateField("email", email);
+    validateField("password", password);
+
+    if (!email || !password || errors.email || errors.password) {
+      setMessage("Ju lutem plotësoni të gjitha fushat saktë!");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
     try {
-     const res = await axios.post("http://localhost:5000/api/v1/users/login", { email, password });
-      login(res.data.token, res.data.user);
-      navigate("/products");
+      const res = await axios.post("http://localhost:5000/api/v1/users/login", { email, password });
+      setSuccessOpen(true);
+      setTimeout(() => {
+        login(res.data.token, res.data.user);
+        navigate("/products");
+      }, 1000);
     } catch (err) {
       setMessage(err.response?.data?.message || "Login dështoi!");
     }
@@ -269,6 +311,13 @@ export default function Login() {
               </div>
             ))}
           </div>
+
+          {/* ✅ MATERIAL UI - Chip për të treguar librari */}
+          <div style={{ marginTop: "40px", position: "relative", zIndex: 1, display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+            <Chip label="JWT Secured" size="small" sx={{ background: "rgba(201,168,76,0.1)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)", fontSize: "9px", letterSpacing: "1px" }} />
+            <Chip label="256-bit Encrypted" size="small" sx={{ background: "rgba(201,168,76,0.1)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)", fontSize: "9px", letterSpacing: "1px" }} />
+            <Chip label="GDPR Compliant" size="small" sx={{ background: "rgba(201,168,76,0.1)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)", fontSize: "9px", letterSpacing: "1px" }} />
+          </div>
         </div>
 
         {/* RIGHT FORM */}
@@ -277,33 +326,65 @@ export default function Login() {
             <h1 className="login-heading">Welcome<br /><em>Back</em></h1>
             <p className="login-sub">Sign in to your account to continue</p>
 
-            {message && <div className="form-error">{message}</div>}
+            {/* ✅ MATERIAL UI - Alert për error */}
+            {message && (
+              <Alert
+                severity="error"
+                sx={{
+                  marginBottom: "24px",
+                  background: "rgba(201,68,68,0.08)",
+                  border: "1px solid rgba(229,115,115,0.3)",
+                  color: "#E88080",
+                  "& .MuiAlert-icon": { color: "#E88080" },
+                  fontFamily: "Montserrat, sans-serif",
+                  fontSize: "12px",
+                }}
+              >
+                {message}
+              </Alert>
+            )}
 
+            {/* ✅ EMAIL FIELD me Dynamic Validation */}
             <div className="form-group">
               <label className="form-label">Email Address</label>
               <input
                 type="email"
                 placeholder="your@email.com"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="form-input"
+                onChange={e => {
+                  setEmail(e.target.value);
+                  validateField("email", e.target.value);
+                }}
+                className={`form-input ${errors.email ? "error" : ""}`}
               />
+              {errors.email && <span className="field-error">{errors.email}</span>}
             </div>
 
+            {/* ✅ PASSWORD FIELD me Dynamic Validation */}
             <div className="form-group">
               <label className="form-label">Password</label>
               <input
                 type="password"
                 placeholder="••••••••••"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  validateField("password", e.target.value);
+                }}
                 onKeyDown={e => e.key === "Enter" && handleLogin()}
-                className="form-input"
+                className={`form-input ${errors.password ? "error" : ""}`}
               />
+              {errors.password && <span className="field-error">{errors.password}</span>}
             </div>
 
+            {/* ✅ SUBMIT me CircularProgress nga MUI */}
             <button className="submit-btn" onClick={handleLogin} disabled={loading}>
-              {loading ? "Signing In..." : "Sign In →"}
+              {loading ? (
+                <>
+                  <CircularProgress size={14} sx={{ color: "#0A0A0A" }} />
+                  Signing In...
+                </>
+              ) : "Sign In →"}
             </button>
 
             <p className="login-footer-text">
@@ -314,6 +395,26 @@ export default function Login() {
         </div>
 
       </div>
+
+      {/* ✅ MATERIAL UI - Snackbar për sukses */}
+      <Snackbar
+        open={successOpen}
+        autoHideDuration={1000}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          icon={<CheckCircleOutlineIcon />}
+          severity="success"
+          sx={{
+            background: "rgba(76,175,80,0.15)",
+            border: "1px solid rgba(76,175,80,0.3)",
+            color: "#81C784",
+            fontFamily: "Montserrat, sans-serif",
+          }}
+        >
+          ✅ Login i suksesshëm! Duke ridrejtuar...
+        </Alert>
+      </Snackbar>
     </>
   );
 }
