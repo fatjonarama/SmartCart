@@ -245,3 +245,20 @@
 [2026-04-22 12:43:55] INFO: Admin stats requested by user 2
 [2026-04-22 12:43:55] INFO: ::1 - - [22/Apr/2026:10:43:55 +0000] "GET /api/v1/stats/overview HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
 [2026-04-22 12:44:31] INFO: ::1 - - [22/Apr/2026:10:44:31 +0000] "PUT /api/v1/products/1 HTTP/1.1" 400 53 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:11] INFO: ::1 - - [22/Apr/2026:10:48:11 +0000] "GET /api/v1/users HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:11] INFO: ::1 - - [22/Apr/2026:10:48:11 +0000] "GET /api/v1/products HTTP/1.1" 200 808 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:11] INFO: ::1 - - [22/Apr/2026:10:48:11 +0000] "GET /api/v1/products HTTP/1.1" 200 805 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:11] INFO: ::1 - - [22/Apr/2026:10:48:11 +0000] "GET /api/v1/users HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:11] INFO: Admin stats requested by user 2
+[2026-04-22 12:48:11] INFO: ::1 - - [22/Apr/2026:10:48:11 +0000] "GET /api/v1/stats/overview HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:11] INFO: Admin stats requested by user 2
+[2026-04-22 12:48:11] INFO: ::1 - - [22/Apr/2026:10:48:11 +0000] "GET /api/v1/stats/overview HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:14] INFO: ::1 - - [22/Apr/2026:10:48:14 +0000] "GET /api/v1/products HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:14] INFO: ::1 - - [22/Apr/2026:10:48:14 +0000] "GET /api/v1/users HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:14] INFO: ::1 - - [22/Apr/2026:10:48:14 +0000] "GET /api/v1/products HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:14] INFO: ::1 - - [22/Apr/2026:10:48:14 +0000] "GET /api/v1/users HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:14] INFO: Admin stats requested by user 2
+[2026-04-22 12:48:14] INFO: ::1 - - [22/Apr/2026:10:48:14 +0000] "GET /api/v1/stats/overview HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:14] INFO: Admin stats requested by user 2
+[2026-04-22 12:48:14] INFO: ::1 - - [22/Apr/2026:10:48:14 +0000] "GET /api/v1/stats/overview HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+[2026-04-22 12:48:25] INFO: ::1 - - [22/Apr/2026:10:48:25 +0000] "PUT /api/v1/products/1 HTTP/1.1" 200 326 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
