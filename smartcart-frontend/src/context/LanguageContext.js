@@ -12,6 +12,7 @@ export const translations = {
     login: "Login",
     logout: "Logout",
     register: "Register",
+    myOrders: "My Orders",
 
     // PRODUCTS PAGE
     search: "Search products...",
@@ -102,8 +103,8 @@ export const translations = {
     alreadyMember: "Already a member?",
     signIn: "Sign in",
     accountCreated: "✓ Account created! Redirecting to login...",
-    fillAllFields: "Ju lutem plotësoni të gjitha fushat!",
-    registerFailed: "Regjistrimi dështoi!",
+    fillAllFields: "Please fill all fields!",
+    registerFailed: "Registration failed!",
 
     // ADMIN DASHBOARD
     smartcartAdmin: "SmartCart Admin",
@@ -153,6 +154,36 @@ export const translations = {
     errorSaving: "❌ Error saving!",
     productDeleted: "✅ Product deleted!",
     confirmDelete: "Are you sure?",
+
+    // MY ORDERS PAGE
+    myOrdersTitle: "My",
+    myOrdersEm: "Orders",
+    noOrdersYet: "No orders yet",
+    noOrdersSub: "Explore our premium collection and place your first order",
+    exploreProducts: "Explore Products →",
+    ordersTotal: "orders total",
+    orderNumber: "Order",
+    orderDate: "Date",
+    orderTotal: "Total",
+    cancelOrder: "✕ Cancel",
+    cancellingOrder: "Cancelling...",
+    confirmCancel: "Are you sure you want to cancel this order?",
+    cancelError: "Error cancelling order!",
+    orderCancelled: "❌ This order has been cancelled",
+    orderDelivered: "✅ Order was delivered successfully",
+    arrivalCountdown: "Arrives within",
+    orderPlaced: "Order placed",
+    estimatedArrival: "Estimated arrival",
+    orderArrived: "Order Arrived!",
+    orderArrivedSub: "Delivery completed within 24 hours",
+    statusPending: "⏳ Pending",
+    statusProcessing: "⚙️ Processing",
+    statusShipped: "🚚 Shipped",
+    statusDelivered: "✅ Delivered",
+    statusCancelled: "❌ Cancelled",
+    productId: "Product #",
+    quantity2: "Quantity",
+    noItemDetails: "No item details",
   },
 
   al: {
@@ -164,6 +195,7 @@ export const translations = {
     login: "Hyrje",
     logout: "Dalje",
     register: "Regjistrohu",
+    myOrders: "Porositë Mia",
 
     // PRODUCTS PAGE
     search: "Kërko produkte...",
@@ -305,6 +337,36 @@ export const translations = {
     errorSaving: "❌ Gabim gjatë ruajtjes!",
     productDeleted: "✅ Produkti u fshi!",
     confirmDelete: "A jeni i sigurt?",
+
+    // MY ORDERS PAGE
+    myOrdersTitle: "Porositë",
+    myOrdersEm: "Mia",
+    noOrdersYet: "Nuk keni porosi ende",
+    noOrdersSub: "Eksploroni koleksionin tonë premium dhe bëni porosinë tuaj të parë",
+    exploreProducts: "Eksploro Produktet →",
+    ordersTotal: "porosi gjithsej",
+    orderNumber: "Porosia",
+    orderDate: "Data",
+    orderTotal: "Totali",
+    cancelOrder: "✕ Anulo",
+    cancellingOrder: "Duke anuluar...",
+    confirmCancel: "A jeni i sigurt që doni ta anuloni këtë porosi?",
+    cancelError: "Gabim gjatë anulimit!",
+    orderCancelled: "❌ Kjo porosi është anuluar",
+    orderDelivered: "✅ Porosia u dorëzua me sukses",
+    arrivalCountdown: "Mbërrin brenda",
+    orderPlaced: "Porosia u bë",
+    estimatedArrival: "Mbërrja e pritshme",
+    orderArrived: "Porosia Mbërriti!",
+    orderArrivedSub: "Dërgesa u kompletua brenda 24 orëve",
+    statusPending: "⏳ Në pritje",
+    statusProcessing: "⚙️ Duke u procesuar",
+    statusShipped: "🚚 Dërguar",
+    statusDelivered: "✅ Dorëzuar",
+    statusCancelled: "❌ Anuluar",
+    productId: "Produkt #",
+    quantity2: "Sasia",
+    noItemDetails: "Nuk ka detaje produktesh",
   }
 };
 

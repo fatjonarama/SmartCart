@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,6 +7,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { useTheme } from "./context/ThemeContext";
 
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
@@ -19,6 +20,7 @@ const Products = React.lazy(() => import("./pages/Products"));
 const Cart = React.lazy(() => import("./pages/Cart"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
+const MyOrders = React.lazy(() => import("./pages/MyOrders"));
 
 const LoadingSpinner = () => (
   <div style={{
@@ -42,31 +44,47 @@ const LoadingSpinner = () => (
   </div>
 );
 
+function AppContent() {
+  const { isDark } = useTheme();
+
+  useEffect(() => {
+    document.body.style.background = isDark ? "#0A0A0A" : "#F5F5F0";
+    document.body.style.transition = "all 0.3s";
+  }, [isDark]);
+
+  return (
+    <Router>
+      <Navbar />
+      <ToastContainer position="top-right" autoClose={3000} />
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
+          <Route path="/cart" element={
+            <PrivateRoute><Cart /></PrivateRoute>
+          }/>
+          <Route path="/my-orders" element={
+            <PrivateRoute><MyOrders /></PrivateRoute>
+          }/>
+          <Route path="/admin" element={
+            <AdminRoute><AdminDashboard /></AdminRoute>
+          }/>
+        </Routes>
+      </Suspense>
+    </Router>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
           <CartProvider>
-            <Router>
-              <Navbar />
-              <ToastContainer position="top-right" autoClose={3000} />
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/products/:id" element={<ProductDetail />} />
-                  <Route path="/cart" element={
-                    <PrivateRoute><Cart /></PrivateRoute>
-                  }/>
-                  <Route path="/admin" element={
-                    <AdminRoute><AdminDashboard /></AdminRoute>
-                  }/>
-                </Routes>
-              </Suspense>
-            </Router>
+            <AppContent />
           </CartProvider>
         </AuthProvider>
       </LanguageProvider>

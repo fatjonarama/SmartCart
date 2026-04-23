@@ -48,6 +48,8 @@ const styles = `
     align-items: center;
     gap: 40px;
     list-style: none;
+    margin: 0;
+    padding: 0;
   }
 
   .nav-link {
@@ -122,30 +124,20 @@ const styles = `
     border: 1px solid rgba(201,168,76,0.4);
   }
 
-  .nav-btn-outline:hover {
-    border-color: #C9A84C;
+  .nav-btn-outline:hover { border-color: #C9A84C; color: #C9A84C; }
+
+  .nav-btn-gold { background: #C9A84C; color: #0A0A0A; }
+  .nav-btn-gold:hover { background: #E8D5A3; transform: translateY(-1px); }
+
+  .nav-btn-admin { background: #9C27B0; color: #fff; }
+  .nav-btn-admin:hover { background: #7B1FA2; transform: translateY(-1px); }
+
+  .nav-btn-orders {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.4);
     color: #C9A84C;
   }
-
-  .nav-btn-gold {
-    background: #C9A84C;
-    color: #0A0A0A;
-  }
-
-  .nav-btn-gold:hover {
-    background: #E8D5A3;
-    transform: translateY(-1px);
-  }
-
-  .nav-btn-admin {
-    background: #9C27B0;
-    color: #fff;
-  }
-
-  .nav-btn-admin:hover {
-    background: #7B1FA2;
-    transform: translateY(-1px);
-  }
+  .nav-btn-orders:hover { background: rgba(201,168,76,0.1); border-color: #C9A84C; }
 
   .nav-user {
     font-size: 10px;
@@ -155,7 +147,6 @@ const styles = `
     text-transform: uppercase;
   }
 
-  /* ✅ THEME TOGGLE */
   .theme-toggle {
     width: 44px; height: 24px;
     border-radius: 12px;
@@ -180,7 +171,6 @@ const styles = `
     font-size: 10px;
   }
 
-  /* ✅ LANG TOGGLE */
   .lang-toggle {
     display: flex;
     border: 1px solid rgba(201,168,76,0.3);
@@ -199,19 +189,60 @@ const styles = `
     transition: all 0.2s;
   }
 
-  .lang-btn.active {
+  .lang-btn.active { background: #C9A84C; color: #0A0A0A; }
+
+  .mobile-menu {
+    position: fixed;
+    top: 80px; left: 0; right: 0;
+    z-index: 999;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+
+  .mobile-nav-link {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(201,168,76,0.08);
+    display: block;
+  }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 4px;
+    background: transparent;
+    border: none;
+  }
+
+  .hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
     background: #C9A84C;
-    color: #0A0A0A;
+    transition: all 0.3s;
+    border-radius: 2px;
   }
 
   @media (max-width: 768px) {
-    .nav-inner { padding: 0 24px; }
+    .nav-inner { padding: 0 20px; }
     .nav-links { display: none; }
   }
 `;
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const { isAuthenticated, user, logout } = useAuth();
   const { cartCount } = useCart();
   const { isDark, toggleTheme } = useTheme();
@@ -220,115 +251,163 @@ export default function Navbar() {
   const location = useLocation();
 
   const navBg = isDark
-    ? scrolled ? "rgba(10,10,10,0.97)" : "transparent"
-    : scrolled ? "rgba(245,245,240,0.97)" : "transparent";
+    ? scrolled || menuOpen ? "rgba(10,10,10,0.97)" : "transparent"
+    : scrolled || menuOpen ? "rgba(245,245,240,0.97)" : "transparent";
 
   const linkColor = isDark ? "rgba(245,240,232,0.7)" : "rgba(30,30,30,0.7)";
+  const textColor = isDark ? "#F5F0E8" : "#1A1A1A";
+
+  // ✅ isUser — true nëse është i loguar por NUK është admin
+  const isUser = isAuthenticated && user?.role !== "admin";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth > 768) setMenuOpen(false);
+    };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  useEffect(() => { setMenuOpen(false); }, [location]);
+
+  const handleLogout = () => { logout(); navigate("/login"); };
+
+  // ✅ My Orders vetëm për user, jo admin
+  const navLinks = [
+    { to: "/", label: t.home },
+    { to: "/products", label: t.products },
+    ...(isUser ? [{ to: "/my-orders", label: t.myOrders }] : []),
+    ...(user?.role === "admin" ? [{ to: "/admin", label: t.admin }] : []),
+  ];
 
   return (
     <>
       <style>{styles}</style>
       <nav className={`navbar ${scrolled ? "scrolled" : "top"}`} style={{ background: navBg }}>
         <div className="nav-inner">
+
           <Link to="/" className="nav-brand">SmartCart</Link>
 
-          <ul className="nav-links">
-            {[
-              { to: "/", label: t.home },
-              { to: "/products", label: t.products },
-              ...(user?.role === "admin" ? [{ to: "/admin", label: t.admin }] : []),
-            ].map(({ to, label }) => (
-              <li key={to}>
-                <Link to={to} className={`nav-link ${location.pathname === to ? "active" : ""}`} style={{ color: linkColor }}>
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {!isMobile && (
+            <ul className="nav-links">
+              {navLinks.map(({ to, label }) => (
+                <li key={to}>
+                  <Link to={to} className={`nav-link ${location.pathname === to ? "active" : ""}`} style={{ color: linkColor }}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="nav-right">
 
-            {/* ✅ LANGUAGE TOGGLE */}
             <div className="lang-toggle">
-              <button
-                className={`lang-btn ${lang === "en" ? "active" : ""}`}
-                onClick={() => lang !== "en" && toggleLang()}
-                style={{
-                  background: lang === "en" ? "#C9A84C" : "transparent",
-                  color: lang === "en" ? "#0A0A0A" : isDark ? "rgba(245,240,232,0.5)" : "rgba(30,30,30,0.5)"
-                }}
-              >
-                EN
-              </button>
-              <button
-                className={`lang-btn ${lang === "al" ? "active" : ""}`}
-                onClick={() => lang !== "al" && toggleLang()}
-                style={{
-                  background: lang === "al" ? "#C9A84C" : "transparent",
-                  color: lang === "al" ? "#0A0A0A" : isDark ? "rgba(245,240,232,0.5)" : "rgba(30,30,30,0.5)"
-                }}
-              >
-                AL
-              </button>
+              <button className={`lang-btn ${lang === "en" ? "active" : ""}`} onClick={() => lang !== "en" && toggleLang()} style={{ background: lang === "en" ? "#C9A84C" : "transparent", color: lang === "en" ? "#0A0A0A" : isDark ? "rgba(245,240,232,0.5)" : "rgba(30,30,30,0.5)" }}>EN</button>
+              <button className={`lang-btn ${lang === "al" ? "active" : ""}`} onClick={() => lang !== "al" && toggleLang()} style={{ background: lang === "al" ? "#C9A84C" : "transparent", color: lang === "al" ? "#0A0A0A" : isDark ? "rgba(245,240,232,0.5)" : "rgba(30,30,30,0.5)" }}>AL</button>
             </div>
 
-            {/* ✅ DARK/LIGHT TOGGLE */}
-            <button className="theme-toggle" onClick={toggleTheme} title={isDark ? "Light Mode" : "Dark Mode"}>
+            <button className="theme-toggle" onClick={toggleTheme}>
               <div className="theme-toggle-knob" style={{ transform: isDark ? "translateX(0)" : "translateX(20px)" }}>
                 {isDark ? "🌙" : "☀️"}
               </div>
             </button>
 
-            {/* CART */}
             <Link to="/cart" className="nav-cart" style={{ color: isDark ? "rgba(245,240,232,0.7)" : "rgba(30,30,30,0.7)" }}>
               🛒
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
 
-            {isAuthenticated ? (
+            {!isMobile && (
               <>
-                <span className="nav-user">{user?.name?.split(" ")[0]}</span>
-                {user?.role === "admin" && (
-                  <button className="nav-btn nav-btn-admin" onClick={() => navigate("/admin")}>
-                    🛡️ {t.admin}
-                  </button>
+                {isAuthenticated ? (
+                  <>
+                    <span className="nav-user">{user?.name?.split(" ")[0]}</span>
+                    {user?.role === "admin" && (
+                      <button className="nav-btn nav-btn-admin" onClick={() => navigate("/admin")}>
+                        🛡️ {t.admin}
+                      </button>
+                    )}
+                    {/* ✅ Vetëm për user, jo admin */}
+                    {isUser && (
+                      <button className="nav-btn nav-btn-orders" onClick={() => navigate("/my-orders")}>
+                        📦 {t.myOrders}
+                      </button>
+                    )}
+                    <button className="nav-btn nav-btn-outline" onClick={handleLogout} style={{ color: isDark ? "rgba(245,240,232,0.8)" : "rgba(30,30,30,0.8)" }}>
+                      {t.logout}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="nav-btn nav-btn-outline" onClick={() => navigate("/login")} style={{ color: isDark ? "rgba(245,240,232,0.8)" : "rgba(30,30,30,0.8)" }}>
+                      {t.login}
+                    </button>
+                    <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")}>
+                      {t.register}
+                    </button>
+                  </>
                 )}
-                <button
-                  className="nav-btn nav-btn-outline"
-                  onClick={handleLogout}
-                  style={{ color: isDark ? "rgba(245,240,232,0.8)" : "rgba(30,30,30,0.8)" }}
-                >
-                  {t.logout}
-                </button>
               </>
-            ) : (
-              <>
-                <button
-                  className="nav-btn nav-btn-outline"
-                  onClick={() => navigate("/login")}
-                  style={{ color: isDark ? "rgba(245,240,232,0.8)" : "rgba(30,30,30,0.8)" }}
-                >
-                  {t.login}
-                </button>
-                <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")}>
-                  {t.register}
-                </button>
-              </>
+            )}
+
+            {isMobile && (
+              <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
+                <span style={{ transform: menuOpen ? "rotate(45deg) translate(5px, 5px)" : "none" }} />
+                <span style={{ opacity: menuOpen ? 0 : 1 }} />
+                <span style={{ transform: menuOpen ? "rotate(-45deg) translate(5px, -5px)" : "none" }} />
+              </button>
             )}
           </div>
         </div>
       </nav>
+
+      {isMobile && menuOpen && (
+        <div className="mobile-menu" style={{ background: isDark ? "rgba(10,10,10,0.97)" : "rgba(245,245,240,0.97)" }}>
+          {navLinks.map(({ to, label }) => (
+            <Link key={to} to={to} className="mobile-nav-link" style={{ color: location.pathname === to ? "#C9A84C" : linkColor }}>
+              {label}
+            </Link>
+          ))}
+
+          {isAuthenticated ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "8px" }}>
+              <span style={{ fontSize: "11px", color: "#C9A84C", letterSpacing: "2px", textTransform: "uppercase" }}>
+                {user?.name}
+              </span>
+              {user?.role === "admin" && (
+                <button className="nav-btn nav-btn-admin" onClick={() => navigate("/admin")} style={{ width: "100%" }}>
+                  🛡️ {t.admin}
+                </button>
+              )}
+              {/* ✅ Vetëm për user, jo admin */}
+              {isUser && (
+                <button className="nav-btn nav-btn-orders" onClick={() => navigate("/my-orders")} style={{ width: "100%" }}>
+                  📦 {t.myOrders}
+                </button>
+              )}
+              <button className="nav-btn nav-btn-outline" onClick={handleLogout} style={{ color: textColor, width: "100%" }}>
+                {t.logout}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "12px", paddingTop: "8px" }}>
+              <button className="nav-btn nav-btn-outline" onClick={() => navigate("/login")} style={{ color: textColor, flex: 1 }}>
+                {t.login}
+              </button>
+              <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")} style={{ flex: 1 }}>
+                {t.register}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

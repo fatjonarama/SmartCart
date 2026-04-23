@@ -38,86 +38,62 @@ const updateStatusSchema = Joi.object({
     }),
 });
 
-/**
- * @swagger
- * tags:
- *   name: Orders
- *   description: Menaxhimi i porosive
- */
-
-/**
- * @swagger
- * /orders:
- *   get:
- *     summary: Merr të gjitha orders (vetëm Admin)
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Lista e të gjitha orders
- *       401:
- *         description: Nuk je i autentikuar
- *       403:
- *         description: Nuk ke leje admin
- */
+// 1. GET ALL ORDERS (Admin)
 router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const orders = await Order.findAll({ include: OrderItem });
     res.json(orders);
   } catch (err) {
-    console.error("❌ GET ORDERS ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
-/**
- * @swagger
- * /orders/my:
- *   get:
- *     summary: Merr orders e përdoruesit të loguar
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Orders e përdoruesit
- *       401:
- *         description: Nuk je i autentikuar
- */
+// 2. GET MY ORDERS (User)
 router.get("/my", protect, async (req, res) => {
   try {
     const orders = await Order.findAll({
       where: { user_id: req.user.id },
       include: OrderItem,
+      order: [["created_at", "DESC"]],
     });
     res.json(orders);
   } catch (err) {
-    console.error("❌ GET MY ORDERS ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
-/**
- * @swagger
- * /orders/{id}:
- *   get:
- *     summary: Merr një order sipas ID
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Order u gjet
- *       404:
- *         description: Order nuk u gjet
- */
+// 3. ✅ CANCEL ORDER — PARA /:id për të mos u kapur si ID
+router.patch("/:id/cancel", protect, async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: "Porosia nuk u gjet!" });
+
+    if (order.user_id !== req.user.id) {
+      return res.status(403).json({ message: "Nuk ke leje ta anulosh këtë porosi!" });
+    }
+
+    if (!["pending", "processing"].includes(order.status)) {
+      return res.status(400).json({
+        message: `Porosia me status '${order.status}' nuk mund të anulohet!`
+      });
+    }
+
+    await order.update({ status: "cancelled" });
+
+    messageQueue.publish("order.cancelled", {
+      orderId: order.id,
+      userId: req.user.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    res.json({ message: "✅ Porosia u anulua!", order });
+  } catch (err) {
+    console.error("❌ CANCEL ORDER ERROR:", err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 4. GET ORDER BY ID
 router.get("/:id", protect, async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, { include: OrderItem });
@@ -127,52 +103,11 @@ router.get("/:id", protect, async (req, res) => {
     }
     res.json(order);
   } catch (err) {
-    console.error("❌ GET ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
-/**
- * @swagger
- * /orders:
- *   post:
- *     summary: Krijo order të ri
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - total_price
- *               - items
- *             properties:
- *               total_price:
- *                 type: number
- *                 example: 59.99
- *               items:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     product_id:
- *                       type: integer
- *                       example: 1
- *                     quantity:
- *                       type: integer
- *                       example: 2
- *                     price:
- *                       type: number
- *                       example: 29.99
- *     responses:
- *       201:
- *         description: Order u krijua me sukses
- *       400:
- *         description: Të dhëna të pavlefshme
- */
+// 5. CREATE ORDER
 router.post("/", protect, async (req, res) => {
   const { error } = orderSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -181,8 +116,8 @@ router.post("/", protect, async (req, res) => {
     const user_id = req.user.id;
     const { total_price, items } = req.body;
 
-    const order = await Order.create({ 
-      user_id, 
+    const order = await Order.create({
+      user_id,
       total_price,
       status: "pending"
     });
@@ -196,7 +131,6 @@ router.post("/", protect, async (req, res) => {
       });
     }
 
-    // --- MESSAGE QUEUE: Publiko event ---
     messageQueue.publish("order.created", {
       orderId: order.id,
       userId: user_id,
@@ -205,48 +139,17 @@ router.post("/", protect, async (req, res) => {
       timestamp: new Date().toISOString(),
     });
 
-    res.status(201).json({ 
-      message: "✅ Order u krijua me sukses!", 
-      orderId: order.id 
+    res.status(201).json({
+      message: "✅ Order u krijua me sukses!",
+      orderId: order.id
     });
   } catch (err) {
-    console.error("❌ ORDER ERROR:", err.message, err.stack);
+    console.error("❌ ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
-/**
- * @swagger
- * /orders/{id}:
- *   put:
- *     summary: Përditëso statusin e order (vetëm Admin)
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [pending, processing, shipped, delivered, cancelled]
- *     responses:
- *       200:
- *         description: Order u përditësua
- *       403:
- *         description: Nuk ke leje admin
- *       404:
- *         description: Order nuk u gjet
- */
+// 6. UPDATE ORDER STATUS (Admin)
 router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   const { error } = updateStatusSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -256,7 +159,6 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     if (!order) return res.status(404).json({ message: "Order nuk u gjet!" });
     await order.update({ status: req.body.status });
 
-    // --- MESSAGE QUEUE: Publiko status update ---
     messageQueue.publish("order.updated", {
       orderId: order.id,
       newStatus: req.body.status,
@@ -265,33 +167,11 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
 
     res.json({ message: "✅ Order u përditësua!", order });
   } catch (err) {
-    console.error("❌ UPDATE ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
-/**
- * @swagger
- * /orders/{id}:
- *   delete:
- *     summary: Fshi order (vetëm Admin)
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Order u fshi
- *       403:
- *         description: Nuk ke leje admin
- *       404:
- *         description: Order nuk u gjet
- */
+// 7. DELETE ORDER (Admin)
 router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id);
@@ -300,7 +180,6 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     await order.destroy();
     res.json({ message: "✅ Order u fshi!" });
   } catch (err) {
-    console.error("❌ DELETE ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
