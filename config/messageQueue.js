@@ -1,28 +1,31 @@
-const EventEmitter = require("events");
+const amqp = require('amqplib');
 
-class MessageQueue extends EventEmitter {
-  constructor() {
-    super();
-    this.queues = {};
-  }
+let channel = null;
 
-  publish(queue, message) {
-    if (!this.queues[queue]) {
-      this.queues[queue] = [];
+const connectRabbitMQ = async () => {
+    try {
+        // Përdor URL-në që vendose te .env
+        const connection = await amqp.connect(process.env.RABBITMQ_URL);
+        channel = await connection.createChannel();
+        
+        // Krijojmë radhën (queue) për porositë - Pika 2.2
+        await channel.assertQueue('order_queue', { durable: true });
+        
+        console.log("✅ RabbitMQ u lidh me sukses në CloudAMQP!");
+    } catch (error) {
+        console.error("❌ Gabim gjatë lidhjes me RabbitMQ:", error.message);
     }
-    this.queues[queue].push(message);
-    this.emit(queue, message);
-    console.log(`📨 [MQ] Message published to queue: ${queue}`, message);
-  }
+};
 
-  subscribe(queue, callback) {
-    this.on(queue, callback);
-    console.log(`👂 [MQ] Subscribed to queue: ${queue}`);
-  }
+// Funksioni për të dërguar mesazhe asinkrone
+const sendToQueue = async (queue, message) => {
+    if (!channel) {
+        console.error("❌ RabbitMQ Channel nuk është gati!");
+        return;
+    }
+    channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)), { persistent: true });
+    console.log(`✉️ [MQ] Mesazhi u dërgua te: ${queue}`);
+};
 
-  getMessages(queue) {
-    return this.queues[queue] || [];
-  }
-}
-
-module.exports = new MessageQueue();
+// Eksportojmë funksionet që përdoren te app.js dhe te controller-at
+module.exports = { connectRabbitMQ, sendToQueue };

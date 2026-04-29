@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 
-
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
 
@@ -244,14 +243,11 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
-
-  // ✅ DYNAMIC FORM VALIDATION STATE
   const [errors, setErrors] = useState({ email: "", password: "" });
 
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // ✅ REAL-TIME VALIDATION
   const validateField = (name, value) => {
     let error = "";
     if (name === "email") {
@@ -263,38 +259,48 @@ export default function Login() {
       else if (value.length < 6) error = "Fjalëkalimi duhet të ketë të paktën 6 karaktere!";
     }
     setErrors(prev => ({ ...prev, [name]: error }));
+    return error === "";
   };
 
   const handleLogin = async () => {
-    // Validate all fields
-    validateField("email", email);
-    validateField("password", password);
+    const isEmailValid = validateField("email", email);
+    const isPassValid = validateField("password", password);
 
-    if (!email || !password || errors.email || errors.password) {
-      setMessage("Ju lutem plotësoni të gjitha fushat saktë!");
+    if (!isEmailValid || !isPassValid) {
+      setMessage("Ju lutem korrigjoni gabimet para se të vazhdoni!");
       return;
     }
 
     setLoading(true);
     setMessage("");
+
     try {
-      const res = await axios.post("http://localhost:5000/api/v1/users/login", { email, password });
-      setSuccessOpen(true);
-      setTimeout(() => {
-        login(res.data.token, res.data.user);
-        navigate("/products");
-      }, 1000);
+      const res = await axios.post("http://localhost:5000/api/v1/users/login", { 
+        email, 
+        password 
+      });
+
+      // ✅ KORRIGJIMI KRYESOR: Përdorim res.data.accessToken si në backend
+      if (res.data.success && res.data.accessToken) {
+        setSuccessOpen(true);
+        setTimeout(() => {
+          // I kalojmë string-un e token-it funksionit login në Context
+          login(res.data.accessToken); 
+          navigate("/products");
+        }, 1200);
+      }
     } catch (err) {
-      setMessage(err.response?.data?.message || "Login dështoi!");
+      const errorMsg = err.response?.data?.message || "Identifikimi dështoi. Kontrolloni kredencialet!";
+      setMessage(errorMsg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <>
       <style>{styles}</style>
       <div className="login-root">
-
         {/* LEFT PANEL */}
         <div className="login-left">
           <div className="login-left-bg" />
@@ -312,7 +318,6 @@ export default function Login() {
             ))}
           </div>
 
-          {/* ✅ MATERIAL UI - Chip për të treguar librari */}
           <div style={{ marginTop: "40px", position: "relative", zIndex: 1, display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
             <Chip label="JWT Secured" size="small" sx={{ background: "rgba(201,168,76,0.1)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)", fontSize: "9px", letterSpacing: "1px" }} />
             <Chip label="256-bit Encrypted" size="small" sx={{ background: "rgba(201,168,76,0.1)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)", fontSize: "9px", letterSpacing: "1px" }} />
@@ -326,7 +331,6 @@ export default function Login() {
             <h1 className="login-heading">Welcome<br /><em>Back</em></h1>
             <p className="login-sub">Sign in to your account to continue</p>
 
-            {/* ✅ MATERIAL UI - Alert për error */}
             {message && (
               <Alert
                 severity="error"
@@ -344,7 +348,6 @@ export default function Login() {
               </Alert>
             )}
 
-            {/* ✅ EMAIL FIELD me Dynamic Validation */}
             <div className="form-group">
               <label className="form-label">Email Address</label>
               <input
@@ -360,7 +363,6 @@ export default function Login() {
               {errors.email && <span className="field-error">{errors.email}</span>}
             </div>
 
-            {/* ✅ PASSWORD FIELD me Dynamic Validation */}
             <div className="form-group">
               <label className="form-label">Password</label>
               <input
@@ -377,7 +379,6 @@ export default function Login() {
               {errors.password && <span className="field-error">{errors.password}</span>}
             </div>
 
-            {/* ✅ SUBMIT me CircularProgress nga MUI */}
             <button className="submit-btn" onClick={handleLogin} disabled={loading}>
               {loading ? (
                 <>
@@ -393,10 +394,8 @@ export default function Login() {
             </p>
           </div>
         </div>
-
       </div>
 
-      {/* ✅ MATERIAL UI - Snackbar për sukses */}
       <Snackbar
         open={successOpen}
         autoHideDuration={1000}
@@ -412,7 +411,7 @@ export default function Login() {
             fontFamily: "Montserrat, sans-serif",
           }}
         >
-          ✅ Login i suksesshëm! Duke ridrejtuar...
+          Login i suksesshëm! Duke ridrejtuar...
         </Alert>
       </Snackbar>
     </>

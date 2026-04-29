@@ -9,22 +9,22 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
-    if (storedToken) {
+    // ✅ Kontrolli mbrojtës: Sigurohemi që storedToken ekziston dhe është string
+    if (storedToken && typeof storedToken === "string" && storedToken.includes(".")) {
       try {
         const payload = JSON.parse(atob(storedToken.split(".")[1]));
         if (payload.exp * 1000 > Date.now()) {
           setToken(storedToken);
-          // ✅ SHTOHET role
           setUser({ 
             id: payload.id, 
             email: payload.email, 
             name: payload.name,
-            role: payload.role
+            role: payload.role 
           });
         } else {
           localStorage.removeItem("token");
         }
-      } catch {
+      } catch (error) {
         localStorage.removeItem("token");
       }
     }
@@ -32,16 +32,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (tokenFromServer) => {
-    localStorage.setItem("token", tokenFromServer);
-    const payload = JSON.parse(atob(tokenFromServer.split(".")[1]));
-    setToken(tokenFromServer);
-    // ✅ SHTOHET role
-    setUser({ 
-      id: payload.id, 
-      email: payload.email, 
-      name: payload.name,
-      role: payload.role
-    });
+    // 🛡️ FIX: Ky kusht ndalon gabimin "Cannot read properties of undefined (reading 'split')"
+    if (!tokenFromServer || typeof tokenFromServer !== "string" || !tokenFromServer.includes(".")) {
+      console.error("Gabim: Token-i që erdhi nga Login.js është i pavlefshëm!", tokenFromServer);
+      return;
+    }
+
+    try {
+      localStorage.setItem("token", tokenFromServer);
+      const payload = JSON.parse(atob(tokenFromServer.split(".")[1]));
+      setToken(tokenFromServer);
+      setUser({ 
+        id: payload.id, 
+        email: payload.email, 
+        name: payload.name,
+        role: payload.role 
+      });
+    } catch (error) {
+      console.error("Gabim gjatë dekodimit të token-it:", error);
+    }
   };
 
   const logout = () => {
@@ -50,11 +59,9 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const isAuthenticated = !!token;
-
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, loading }}>
-      {children}
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

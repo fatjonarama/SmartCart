@@ -4,12 +4,12 @@ const Joi = require("joi");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const NodeCache = require("node-cache");
 const { Op } = require("sequelize"); 
 const Product = require("../models/Product");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
-const cache = new NodeCache({ stdTTL: 300 });
+// ✅ NDRYSHIMI KRYESOR: Importojmë klientin Redis në vend të node-cache
+const redisClient = require("../config/redis");
 
 // ── MULTER CONFIG ────────────────────────────────
 const storage = multer.diskStorage({
@@ -49,14 +49,26 @@ const updateProductSchema = Joi.object({
   stock: Joi.number().integer().min(0).optional(),
 });
 
-// ── 1. GET ALL (Me Caching, Search, Filter & Pagination) ──
+// ── 1. GET ALL (Me Redis Caching, Search, Filter & Pagination) ──
 router.get("/", async (req, res) => {
   try {
     const { search, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
     
-    const cacheKey = `products_${JSON.stringify(req.query)}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) return res.json({ source: "cache", ...cachedData });
+    // Krijojmë një çelës unik për Redis bazuar në parametrat e kërkesës
+    const cacheKey = `products_query_${JSON.stringify(req.query)}`;
+
+    // ✅ KONTROLLI NË REDIS
+    try {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        return res.json({ 
+          source: "Redis Cache (Pika 2.3)", 
+          ...JSON.parse(cachedData) 
+        });
+      }
+    } catch (redisErr) {
+      console.error("Redis Get Error:", redisErr);
+    }
 
     const where = {};
     if (search) where.name = { [Op.like]: `%${search}%` };
@@ -76,7 +88,6 @@ router.get("/", async (req, res) => {
       where,
       limit: limitNum,
       offset: offset,
-      // RREGULLIMI: U ndryshua nga createdAt në created_at
       order: [["created_at", "DESC"]] 
     });
 
@@ -90,8 +101,14 @@ router.get("/", async (req, res) => {
       }
     };
 
-    cache.set(cacheKey, result);
-    res.json({ source: "database", ...result });
+    // ✅ RUJTJA NË REDIS (Skadon pas 1 ore / 3600 sekonda)
+    try {
+      await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
+    } catch (redisErr) {
+      console.error("Redis Set Error:", redisErr);
+    }
+
+    res.json({ source: "Database", ...result });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -100,14 +117,19 @@ router.get("/", async (req, res) => {
 // ── 2. GET BY ID ──────────────────────────────────
 router.get("/:id", async (req, res) => {
   try {
-    const cached = cache.get(`product_${req.params.id}`);
-    if (cached) return res.json({ source: "cache", data: cached });
+    const cacheKey = `product_${req.params.id}`;
+    
+    // Kontrollo Redis
+    const cached = await redisClient.get(cacheKey);
+    if (cached) return res.json({ source: "Redis Cache", data: JSON.parse(cached) });
 
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
 
-    cache.set(`product_${req.params.id}`, product);
-    res.json({ source: "database", data: product });
+    // Ruaj në Redis
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
+    
+    res.json({ source: "Database", data: product });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -125,7 +147,9 @@ router.post("/", protect, authorizeRoles("admin"), upload.single("image"), async
 
     const product = await Product.create({ ...req.body, image_url });
     
-    cache.flushAll(); 
+    // ✅ FSHIJIMË CACHE: Kur shtohet produkt i ri, pastrojmë Redis që të dhënat të rifreskohen
+    await redisClient.flushAll(); 
+    
     res.status(201).json({ message: "✅ Produkti u krijua!", data: product });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -152,7 +176,10 @@ router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), asy
     }
 
     await product.update(updateData);
-    cache.flushAll(); 
+    
+    // ✅ PASTROJMË REDIS
+    await redisClient.flushAll(); 
+    
     res.json({ message: "✅ Produkti u përditësua!", data: product });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -171,7 +198,10 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     }
 
     await product.destroy();
-    cache.flushAll();
+    
+    // ✅ PASTROJMË REDIS
+    await redisClient.flushAll();
+    
     res.json({ message: "✅ Produkti u fshi me sukses!" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -179,4 +209,3 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
 });
 
 module.exports = router;
-module.exports.cache = cache;
