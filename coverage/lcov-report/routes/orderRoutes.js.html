@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">54.01% </span>
+                <span class="strong">54.86% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>74/137</span>
+                <span class='fraction'>79/144</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">34.48% </span>
+                <span class="strong">35.48% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>20/58</span>
+                <span class='fraction'>22/62</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">60% </span>
+                <span class="strong">63.63% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>6/10</span>
+                <span class='fraction'>7/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">56.55% </span>
+                <span class="strong">57.48% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>69/122</span>
+                <span class='fraction'>73/127</span>
             </div>
         
             
@@ -306,7 +306,6 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -330,6 +329,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -374,7 +381,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -439,7 +445,6 @@
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
@@ -450,9 +455,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -469,9 +472,7 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -495,7 +496,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -539,7 +539,6 @@ const User      = require("../models/User");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const messageQueue = require("../config/messageQueue");
 &nbsp;
-// ✅ Importo cache-in e produkteve për ta pastruar pas order-it
 const productRoutes = require("./productRoutes");
 &nbsp;
 const orderSchema = Joi.object({
@@ -565,7 +564,15 @@ const updateStatusSchema = Joi.object({
     .required()
 });
 &nbsp;
-// Helper — pastro cache-in e produkteve
+// Helper — publiko event (i sigurt)
+const mqPublish = (queue, data) =&gt; {
+  try {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (messageQueue.sendToQueue) <span class="cstat-no" title="statement not covered" >messageQueue.sendToQueue(queue, data);</span>
+    else <span class="missing-if-branch" title="else path not taken" >E</span>if (messageQueue.publish) messageQueue.publish(queue, data);
+  } catch (e) { <span class="cstat-no" title="statement not covered" >console.warn("MQ publish failed:", e.message); </span>}
+};
+&nbsp;
+// Helper — pastro cache
 const flushProductCache = () =&gt; {
   try { <span class="missing-if-branch" title="if path not taken" >I</span>if (productRoutes.cache) <span class="cstat-no" title="statement not covered" >productRoutes.cache.flushAll(); </span>} catch (e) {}
 };
@@ -596,7 +603,7 @@ router.get("/my", protect, async (req, res) =&gt; {
   } catch (err) { <span class="cstat-no" title="statement not covered" >res.status(500).json({ message: err.message }); </span>}
 });
 &nbsp;
-// 3. CANCEL — kthen stock-un
+// 3. CANCEL
 router.patch("/:id/cancel", protect, async (req, res) =&gt; {
   try {
     const order = await Order.findByPk(req.params.id, { include: OrderItem });
@@ -608,10 +615,9 @@ router.patch("/:id/cancel", protect, async (req, res) =&gt; {
     for (const item of order.OrderItems || <span class="branch-1 cbranch-no" title="branch not covered" >[])</span> {
 <span class="cstat-no" title="statement not covered" >      await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });</span>
     }
-&nbsp;
     await order.update({ status: "cancelled" });
-    flushProductCache(); // ✅
-    messageQueue.publish("order.cancelled", { orderId: order.id, userId: req.user.id, timestamp: new Date().toISOString() });
+    flushProductCache();
+    mqPublish("order.cancelled", { orderId: order.id, userId: req.user.id, timestamp: new Date().toISOString() });
     res.json({ message: "✅ Porosia u anulua!", order });
   } catch (err) { <span class="cstat-no" title="statement not covered" >res.status(500).json({ message: err.message }); </span>}
 });
@@ -630,7 +636,7 @@ router.patch("/:id/exchange", protect, <span class="fstat-no" title="function no
 &nbsp;
     const adminNote = <span class="cstat-no" title="statement not covered" >`[EXCHANGE] Arsyeja: ${reason}${note ? ` | Detaje: ${note}` : ""}`;</span>
 <span class="cstat-no" title="statement not covered" >    await order.update({ status: "exchange", admin_note: adminNote });</span>
-<span class="cstat-no" title="statement not covered" >    messageQueue.publish("order.exchange", { orderId: order.id, userId: req.user.id, reason, timestamp: new Date().toISOString() });</span>
+<span class="cstat-no" title="statement not covered" >    mqPublish("order.exchange", { orderId: order.id, userId: req.user.id, reason, timestamp: new Date().toISOString() });</span>
 <span class="cstat-no" title="statement not covered" >    res.json({ message: "✅ Kërkesa u dërgua!", order });</span>
   } catch (err) { <span class="cstat-no" title="statement not covered" >res.status(500).json({ message: err.message }); </span>}
 });
@@ -648,7 +654,7 @@ router.patch("/:id/return", protect, <span class="fstat-no" title="function not 
 <span class="cstat-no" title="statement not covered" >    if (!note?.trim()) <span class="cstat-no" title="statement not covered" >return res.status(400).json({ message: "Përshkrimi i defektit është i detyrueshëm!" });</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await order.update({ status: "return", admin_note: `[RETURN/DEFECT] ${note}` });</span>
-<span class="cstat-no" title="statement not covered" >    messageQueue.publish("order.return", { orderId: order.id, userId: req.user.id, note, timestamp: new Date().toISOString() });</span>
+<span class="cstat-no" title="statement not covered" >    mqPublish("order.return", { orderId: order.id, userId: req.user.id, note, timestamp: new Date().toISOString() });</span>
 <span class="cstat-no" title="statement not covered" >    res.json({ message: "✅ Raporti u dërgua!", order });</span>
   } catch (err) { <span class="cstat-no" title="statement not covered" >res.status(500).json({ message: err.message }); </span>}
 });
@@ -664,7 +670,7 @@ router.get("/:id", protect, <span class="fstat-no" title="function not covered" 
   } catch (err) { <span class="cstat-no" title="statement not covered" >res.status(500).json({ message: err.message }); </span>}
 });
 &nbsp;
-// 7. CREATE ORDER — me stock decrement
+// 7. CREATE ORDER
 router.post("/", protect, async (req, res) =&gt; {
   const { error } = orderSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -672,7 +678,6 @@ router.post("/", protect, async (req, res) =&gt; {
   try {
     const { total_price, items, payment_method } = req.body;
 &nbsp;
-    // HAPI 1 — Kontrollo stock
     for (const item of items) {
       const product = await Product.findByPk(item.product_id);
       if (!product)
@@ -683,7 +688,6 @@ router.post("/", protect, async (req, res) =&gt; {
         });
     }
 &nbsp;
-    // HAPI 2 — Krijo order-in
     const order = await Order.create({
       user_id: req.user.id,
       total_price,
@@ -691,7 +695,6 @@ router.post("/", protect, async (req, res) =&gt; {
       payment_method: payment_method || <span class="branch-1 cbranch-no" title="branch not covered" >"cash"</span>
     });
 &nbsp;
-    // HAPI 3 — Krijo items dhe ul stock-un
     for (const item of items) {
       await OrderItem.create({
         order_id:   order.id,
@@ -702,10 +705,8 @@ router.post("/", protect, async (req, res) =&gt; {
       await Product.decrement("stock", { by: item.quantity, where: { id: item.product_id } });
     }
 &nbsp;
-    // ✅ Pastro cache-in e produkteve — kështu stoku i ri shfaqet menjëherë
     flushProductCache();
-&nbsp;
-    messageQueue.publish("order.created", {
+    mqPublish("order.created", {
       orderId: order.id, userId: req.user.id,
       totalPrice: total_price, paymentMethod: payment_method,
       itemCount: items.length, timestamp: new Date().toISOString()
@@ -718,7 +719,7 @@ router.post("/", protect, async (req, res) =&gt; {
   }
 });
 &nbsp;
-// 8. UPDATE STATUS (Admin) — kthe stock nëse anulohet
+// 8. UPDATE STATUS (Admin)
 router.put("/:id", protect, authorizeRoles("admin"), async (req, res) =&gt; {
   const { error } = updateStatusSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -729,21 +730,20 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) =&gt; {
     const oldStatus = order.status;
     const newStatus = req.body.status;
 &nbsp;
-    // Kthe stock nëse anulohet
     <span class="missing-if-branch" title="if path not taken" >I</span>if (newStatus === "cancelled" &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >!["cancelled"].includes(oldStatus))</span> {
 <span class="cstat-no" title="statement not covered" >      for (const item of order.OrderItems || []) {</span>
 <span class="cstat-no" title="statement not covered" >        await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });</span>
       }
-<span class="cstat-no" title="statement not covered" >      flushProductCache(); </span>// ✅
+<span class="cstat-no" title="statement not covered" >      flushProductCache();</span>
     }
 &nbsp;
     await order.update({ status: newStatus });
-    messageQueue.publish("order.updated", { orderId: order.id, newStatus, timestamp: new Date().toISOString() });
+    mqPublish("order.updated", { orderId: order.id, newStatus, timestamp: new Date().toISOString() });
     res.json({ message: "✅ Order u përditësua!", order });
   } catch (err) { <span class="cstat-no" title="statement not covered" >res.status(500).json({ message: err.message }); </span>}
 });
 &nbsp;
-// 9. DELETE (Admin) — kthe stock
+// 9. DELETE (Admin)
 router.delete("/:id", protect, authorizeRoles("admin"), <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {
 <span class="cstat-no" title="statement not covered" >  try {</span>
     const order = <span class="cstat-no" title="statement not covered" >await Order.findByPk(req.params.id, { include: OrderItem });</span>
@@ -753,7 +753,7 @@ router.delete("/:id", protect, authorizeRoles("admin"), <span class="fstat-no" t
 <span class="cstat-no" title="statement not covered" >      for (const item of order.OrderItems || []) {</span>
 <span class="cstat-no" title="statement not covered" >        await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });</span>
       }
-<span class="cstat-no" title="statement not covered" >      flushProductCache(); </span>// ✅
+<span class="cstat-no" title="statement not covered" >      flushProductCache();</span>
     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    await OrderItem.destroy({ where: { order_id: order.id } });</span>
@@ -769,7 +769,7 @@ module.exports = router;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-29T13:13:17.726Z
+                at 2026-04-29T20:00:54.038Z
             </div>
         <script src="../prettify.js"></script>
         <script>
