@@ -9,7 +9,7 @@ const Product = require("../models/Product");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
 // ✅ NDRYSHIMI KRYESOR: Importojmë klientin Redis në vend të node-cache
-const { redisClient } = require("../config/redis");
+// const { redisClient } = require("../config/redis");
 
 // ── MULTER CONFIG ────────────────────────────────
 const storage = multer.diskStorage({
@@ -120,14 +120,14 @@ router.get("/:id", async (req, res) => {
     const cacheKey = `product_${req.params.id}`;
     
     // Kontrollo Redis
-    const cached = await redisClient.get(cacheKey);
+    const cached = null; // Redis disabled temporarily
     if (cached) return res.json({ source: "Redis Cache", data: JSON.parse(cached) });
 
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
 
     // Ruaj në Redis
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
+    // await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
     
     res.json({ source: "Database", data: product });
   } catch (err) {
@@ -148,7 +148,7 @@ router.post("/", protect, authorizeRoles("admin"), upload.single("image"), async
     const product = await Product.create({ ...req.body, image_url });
     
     // ✅ FSHIJIMË CACHE: Kur shtohet produkt i ri, pastrojmë Redis që të dhënat të rifreskohen
-    await redisClient.flushAll(); 
+    // await redisClient.flushAll();; 
     
     res.status(201).json({ message: "✅ Produkti u krijua!", data: product });
   } catch (err) {
@@ -178,7 +178,7 @@ router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), asy
     await product.update(updateData);
     
     // ✅ PASTROJMË REDIS
-    await redisClient.flushAll(); 
+    // await redisClient.flushAll();
     
     res.json({ message: "✅ Produkti u përditësua!", data: product });
   } catch (err) {
@@ -200,7 +200,7 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     await product.destroy();
     
     // ✅ PASTROJMË REDIS
-    await redisClient.flushAll();
+    // await redisClient.flushAll();
     
     res.json({ message: "✅ Produkti u fshi me sukses!" });
   } catch (err) {
