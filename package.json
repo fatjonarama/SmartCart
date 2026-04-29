@@ -1,9 +1,36 @@
 {
   "name": "smartcart-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "jest --coverage --forceExit",
+    "test:watch": "jest --watch",
+    "test:verbose": "jest --verbose --coverage --forceExit"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "services/UserService.js",
+      "services/ProductOrderService.js",
+      "middleware/authMiddleware.js",
+      "routes/orderRoutes.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 40,
+        "functions": 40,
+        "branches": 25,
+        "statements": 40
+      }
+    },
+    "testMatch": [
+      "**/__tests__/**/*.test.js",
+      "**/tests/**/*.test.js"
+    ],
+    "testTimeout": 10000
   },
   "keywords": [],
   "author": "",
@@ -36,6 +63,8 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
     "sequelize-cli": "^6.6.5"
   }
 }

@@ -9,7 +9,7 @@ const Product = require("../models/Product");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
 // ✅ NDRYSHIMI KRYESOR: Importojmë klientin Redis në vend të node-cache
-const redisClient = require("../config/redis");
+const { redisClient } = require("../config/redis");
 
 // ── MULTER CONFIG ────────────────────────────────
 const storage = multer.diskStorage({

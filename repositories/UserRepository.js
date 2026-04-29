@@ -35,7 +35,7 @@ class UserRepository {
       attributes: { exclude: ["password"] },
       limit:  parseInt(limit),
       offset,
-      order:  [["createdAt", "DESC"]],
+      order:  [["created_at", "DESC"]],
     });
 
     return {

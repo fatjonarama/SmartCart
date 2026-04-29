@@ -8,7 +8,6 @@ const User      = require("../models/User");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const messageQueue = require("../config/messageQueue");
 
-// ✅ Importo cache-in e produkteve për ta pastruar pas order-it
 const productRoutes = require("./productRoutes");
 
 const orderSchema = Joi.object({
@@ -34,7 +33,15 @@ const updateStatusSchema = Joi.object({
     .required()
 });
 
-// Helper — pastro cache-in e produkteve
+// Helper — publiko event (i sigurt)
+const mqPublish = (queue, data) => {
+  try {
+    if (messageQueue.sendToQueue) messageQueue.sendToQueue(queue, data);
+    else if (messageQueue.publish) messageQueue.publish(queue, data);
+  } catch (e) { console.warn("MQ publish failed:", e.message); }
+};
+
+// Helper — pastro cache
 const flushProductCache = () => {
   try { if (productRoutes.cache) productRoutes.cache.flushAll(); } catch (e) {}
 };
@@ -65,7 +72,7 @@ router.get("/my", protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// 3. CANCEL — kthen stock-un
+// 3. CANCEL
 router.patch("/:id/cancel", protect, async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, { include: OrderItem });
@@ -77,10 +84,9 @@ router.patch("/:id/cancel", protect, async (req, res) => {
     for (const item of order.OrderItems || []) {
       await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });
     }
-
     await order.update({ status: "cancelled" });
-    flushProductCache(); // ✅
-    messageQueue.publish("order.cancelled", { orderId: order.id, userId: req.user.id, timestamp: new Date().toISOString() });
+    flushProductCache();
+    mqPublish("order.cancelled", { orderId: order.id, userId: req.user.id, timestamp: new Date().toISOString() });
     res.json({ message: "✅ Porosia u anulua!", order });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -99,7 +105,7 @@ router.patch("/:id/exchange", protect, async (req, res) => {
 
     const adminNote = `[EXCHANGE] Arsyeja: ${reason}${note ? ` | Detaje: ${note}` : ""}`;
     await order.update({ status: "exchange", admin_note: adminNote });
-    messageQueue.publish("order.exchange", { orderId: order.id, userId: req.user.id, reason, timestamp: new Date().toISOString() });
+    mqPublish("order.exchange", { orderId: order.id, userId: req.user.id, reason, timestamp: new Date().toISOString() });
     res.json({ message: "✅ Kërkesa u dërgua!", order });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -117,7 +123,7 @@ router.patch("/:id/return", protect, async (req, res) => {
     if (!note?.trim()) return res.status(400).json({ message: "Përshkrimi i defektit është i detyrueshëm!" });
 
     await order.update({ status: "return", admin_note: `[RETURN/DEFECT] ${note}` });
-    messageQueue.publish("order.return", { orderId: order.id, userId: req.user.id, note, timestamp: new Date().toISOString() });
+    mqPublish("order.return", { orderId: order.id, userId: req.user.id, note, timestamp: new Date().toISOString() });
     res.json({ message: "✅ Raporti u dërgua!", order });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -133,7 +139,7 @@ router.get("/:id", protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// 7. CREATE ORDER — me stock decrement
+// 7. CREATE ORDER
 router.post("/", protect, async (req, res) => {
   const { error } = orderSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -141,7 +147,6 @@ router.post("/", protect, async (req, res) => {
   try {
     const { total_price, items, payment_method } = req.body;
 
-    // HAPI 1 — Kontrollo stock
     for (const item of items) {
       const product = await Product.findByPk(item.product_id);
       if (!product)
@@ -152,7 +157,6 @@ router.post("/", protect, async (req, res) => {
         });
     }
 
-    // HAPI 2 — Krijo order-in
     const order = await Order.create({
       user_id: req.user.id,
       total_price,
@@ -160,7 +164,6 @@ router.post("/", protect, async (req, res) => {
       payment_method: payment_method || "cash"
     });
 
-    // HAPI 3 — Krijo items dhe ul stock-un
     for (const item of items) {
       await OrderItem.create({
         order_id:   order.id,
@@ -171,10 +174,8 @@ router.post("/", protect, async (req, res) => {
       await Product.decrement("stock", { by: item.quantity, where: { id: item.product_id } });
     }
 
-    // ✅ Pastro cache-in e produkteve — kështu stoku i ri shfaqet menjëherë
     flushProductCache();
-
-    messageQueue.publish("order.created", {
+    mqPublish("order.created", {
       orderId: order.id, userId: req.user.id,
       totalPrice: total_price, paymentMethod: payment_method,
       itemCount: items.length, timestamp: new Date().toISOString()
@@ -187,7 +188,7 @@ router.post("/", protect, async (req, res) => {
   }
 });
 
-// 8. UPDATE STATUS (Admin) — kthe stock nëse anulohet
+// 8. UPDATE STATUS (Admin)
 router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   const { error } = updateStatusSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -198,21 +199,20 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     const oldStatus = order.status;
     const newStatus = req.body.status;
 
-    // Kthe stock nëse anulohet
     if (newStatus === "cancelled" && !["cancelled"].includes(oldStatus)) {
       for (const item of order.OrderItems || []) {
         await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });
       }
-      flushProductCache(); // ✅
+      flushProductCache();
     }
 
     await order.update({ status: newStatus });
-    messageQueue.publish("order.updated", { orderId: order.id, newStatus, timestamp: new Date().toISOString() });
+    mqPublish("order.updated", { orderId: order.id, newStatus, timestamp: new Date().toISOString() });
     res.json({ message: "✅ Order u përditësua!", order });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// 9. DELETE (Admin) — kthe stock
+// 9. DELETE (Admin)
 router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, { include: OrderItem });
@@ -222,7 +222,7 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
       for (const item of order.OrderItems || []) {
         await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });
       }
-      flushProductCache(); // ✅
+      flushProductCache();
     }
 
     await OrderItem.destroy({ where: { order_id: order.id } });
