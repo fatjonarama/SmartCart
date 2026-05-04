@@ -35,6 +35,16 @@ const User = sequelize.define(
       defaultValue: DataTypes.NOW, 
       field: "created_at" 
     },
+    reset_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "reset_token"
+    },
+    reset_token_expiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "reset_token_expiry"
+    },
   },
   {
     timestamps: false,
@@ -44,17 +54,6 @@ const User = sequelize.define(
 // ✅ POLYMORPHISM - override toString()
 User.prototype.toString = function() {
   return `User[${this.id}]: ${this.name} (${this.role})`;
-};
-
-// ✅ POLYMORPHISM - override validate()
-User.prototype.validate = function() {
-  if (!this.name || this.name.length < 2) {
-    throw new Error("Emri duhet të ketë të paktën 2 karaktere!");
-  }
-  if (!this.email || !this.email.includes("@")) {
-    throw new Error("Email-i nuk është i vlefshëm!");
-  }
-  return true;
 };
 
 // ✅ POLYMORPHISM - override toSafeJSON()

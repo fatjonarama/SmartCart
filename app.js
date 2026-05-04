@@ -70,16 +70,25 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // ══════════════════════════════════════════════════
 // 4. INPUT SANITIZATION
+// XSS vetëm për products dhe orders — jo për user routes (email/password)
+// SQL Injection për të gjitha API routes
 // ══════════════════════════════════════════════════
-app.use(xssProtection);           // XSS Protection
-app.use("/api", sqlInjectionProtection);  // SQL Injection - vetëm API
+app.use("/api/v1/products", xssProtection);
+app.use("/api/v1/orders",   xssProtection);
+app.use("/api/v1/reviews",  xssProtection);
+// SQL Injection - aplikohet vetëm te routes specifike, jo user routes
+app.use("/api/v1/products", sqlInjectionProtection);
+app.use("/api/v1/orders",   sqlInjectionProtection);
+app.use("/api/v1/reviews",  sqlInjectionProtection);
+app.use("/api/v1/stats",    sqlInjectionProtection);
 
 // ══════════════════════════════════════════════════
 // 5. RATE LIMITING
 // ══════════════════════════════════════════════════
 app.use("/api/", apiLimiter);
-app.use("/api/v1/users/login",    authLimiter);
-app.use("/api/v1/users/register", authLimiter);
+app.use("/api/v1/users/login",          authLimiter);
+app.use("/api/v1/users/register",       authLimiter);
+app.use("/api/v1/users/forgot-password", authLimiter);
 
 // ══════════════════════════════════════════════════
 // 6. STATIC FILES & LOGGING
@@ -90,11 +99,9 @@ app.use(morgan("combined", { stream: { write: (msg) => logger.info(msg.trim()) }
 // ══════════════════════════════════════════════════
 // 7. MONITORING
 // ══════════════════════════════════════════════════
-// Metrics endpoint
 app.get("/metrics", metricsRoute);
 app.use(metricsMiddleware);
 
-// Status endpoint i thjeshtë
 app.get("/status", (req, res) => {
   const used = process.memoryUsage();
   res.json({
@@ -104,9 +111,9 @@ app.get("/status", (req, res) => {
       heapUsed:  `${Math.round(used.heapUsed / 1024 / 1024)}MB`,
       heapTotal: `${Math.round(used.heapTotal / 1024 / 1024)}MB`,
     },
-    cpu:      process.cpuUsage(),
-    pid:      process.pid,
-    node:     process.version,
+    cpu:       process.cpuUsage(),
+    pid:       process.pid,
+    node:      process.version,
     timestamp: new Date().toISOString(),
   });
 });
@@ -126,12 +133,12 @@ app.use("/api/v1/reviews",  require("./routes/reviewRoutes"));
 app.use("/api/v1/stats",    require("./routes/statsRoutes"));
 
 // ══════════════════════════════════════════════════
-// 10. HEALTH & METRICS
+// 10. HEALTH
 // ══════════════════════════════════════════════════
 app.use("/health", require("./routes/healthRoutes"));
 
 // ══════════════════════════════════════════════════
-// 11. STATUS
+// 11. INFO ENDPOINT
 // ══════════════════════════════════════════════════
 app.get("/api/services", (req, res) => res.json({
   status:    "Healthy",
@@ -212,7 +219,6 @@ if (require.main === module) {
 
       const PORT = process.env.PORT || 5000;
 
-      // ── HTTPS në production ────────────────────
       if (process.env.NODE_ENV === "production" &&
           fs.existsSync("./certs/server.key") &&
           fs.existsSync("./certs/server.cert")) {
@@ -223,19 +229,17 @@ if (require.main === module) {
         https.createServer(httpsOptions, app).listen(443, () => {
           console.log("HTTPS Server running on port 443");
         });
-        // Redirect HTTP → HTTPS
         express().use((req, res) => {
           res.redirect(`https://${req.headers.host}${req.url}`);
         }).listen(80, () => console.log("HTTP redirect running on port 80"));
       } else {
-        // HTTP në development
         app.listen(PORT, () => {
           console.log(`\nServer running on port ${PORT}`);
           console.log(`Metrics:        http://localhost:${PORT}/metrics`);
           console.log(`Health:         http://localhost:${PORT}/health/detail`);
           console.log(`Status Monitor: http://localhost:${PORT}/status`);
           console.log(`Swagger:        http://localhost:${PORT}/api-docs`);
-          console.log(`Security:       XSS + SQL + NoSQL + HPP + RateLimit + Helmet`);
+          console.log(`Security:       XSS + SQL + RateLimit + Helmet`);
         });
       }
 

@@ -17,6 +17,7 @@ import AdminRoute   from "./components/AdminRoute";
 const Home           = React.lazy(() => import("./pages/Home"));
 const Login          = React.lazy(() => import("./pages/Login"));
 const Register       = React.lazy(() => import("./pages/Register"));
+const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const Products       = React.lazy(() => import("./pages/Products"));
 const Cart           = React.lazy(() => import("./pages/Cart"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
@@ -24,6 +25,7 @@ const ProductDetail  = React.lazy(() => import("./pages/ProductDetail"));
 const MyOrders       = React.lazy(() => import("./pages/MyOrders"));
 const ProfilePage    = React.lazy(() => import("./pages/ProfilePage"));
 const WishlistPage   = React.lazy(() => import("./pages/WishlistPage"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 
 const LoadingSpinner = () => (
   <div style={{ minHeight: "100vh", background: "#0A0A0A", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "20px" }}>
@@ -46,16 +48,19 @@ function AppContent() {
       <ToastContainer position="top-right" autoClose={3000} />
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
-          <Route path="/"             element={<Home />} />
-          <Route path="/login"        element={<Login />} />
-          <Route path="/register"     element={<Register />} />
-          <Route path="/products"     element={<Products />} />
-          <Route path="/products/:id" element={<ProductDetail />} />
-          <Route path="/cart"         element={<PrivateRoute><Cart /></PrivateRoute>} />
-          <Route path="/my-orders"    element={<PrivateRoute><MyOrders /></PrivateRoute>} />
-          <Route path="/profile"      element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-          <Route path="/wishlist"     element={<PrivateRoute><WishlistPage /></PrivateRoute>} />
-          <Route path="/admin"        element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/"                 element={<Home />} />
+          <Route path="/login"            element={<Login />} />
+          <Route path="/register"         element={<Register />} />
+          <Route path="/forgot-password"  element={<ForgotPassword />} />
+          <Route path="/products"         element={<Products />} />
+          <Route path="/products/:id"     element={<ProductDetail />} />
+          <Route path="/cart"             element={<PrivateRoute><Cart /></PrivateRoute>} />
+          <Route path="/my-orders"        element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+          <Route path="/profile"          element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          <Route path="/wishlist"         element={<PrivateRoute><WishlistPage /></PrivateRoute>} />
+          <Route path="/admin"            element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
         </Routes>
       </Suspense>
     </Router>

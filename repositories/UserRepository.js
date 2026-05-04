@@ -1,33 +1,24 @@
 const User = require("../models/User");
 const { Op } = require("sequelize");
 
-// ══════════════════════════════════════════════════
-// USER REPOSITORY — Data Access Layer (DDD)
-// Izoloni logjikën e qasjes së të dhënave nga business logic
-// ══════════════════════════════════════════════════
-
 class UserRepository {
 
-  // Gjej me ID
   async findById(id) {
     return User.findByPk(id, { attributes: { exclude: ["password"] } });
   }
 
-  // Gjej me ID (me fjalëkalim — për autentikim)
   async findByIdWithPassword(id) {
     return User.findByPk(id);
   }
 
-  // Gjej me email
   async findByEmail(email) {
     return User.findOne({ where: { email } });
   }
 
-  // Gjej të gjithë me pagination dhe filtering
   async findAll({ page = 1, limit = 10, role, search } = {}) {
     const where = {};
-    if (role)   where.role  = role;
-    if (search) where.name  = { [Op.like]: `%${search}%` };
+    if (role)   where.role = role;
+    if (search) where.name = { [Op.like]: `%${search}%` };
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const { count, rows } = await User.findAndCountAll({
@@ -39,7 +30,7 @@ class UserRepository {
     });
 
     return {
-      data: rows,
+      users: rows,
       pagination: {
         total:      count,
         page:       parseInt(page),
@@ -49,12 +40,10 @@ class UserRepository {
     };
   }
 
-  // Krijo user të ri
   async create({ name, email, password, role = "user" }) {
     return User.create({ name, email, password, role });
   }
 
-  // Përditëso profilin
   async updateProfile(id, { name, email }) {
     const user = await User.findByPk(id);
     if (!user) return null;
@@ -62,7 +51,6 @@ class UserRepository {
     return user;
   }
 
-  // Ndrysho fjalëkalimin
   async updatePassword(id, hashedPassword) {
     const user = await User.findByPk(id);
     if (!user) return null;
@@ -70,33 +58,30 @@ class UserRepository {
     return user;
   }
 
-  // Ruaj reset token
-  async saveResetToken(id, resetToken, resetTokenExpiry) {
-    const user = await User.findByPk(id);
-    if (!user) return null;
-    await user.update({ resetToken, resetTokenExpiry });
-    return user;
+  // ── Reset Token (kolona: reset_token, reset_token_expiry) ──
+  async saveResetToken(id, token, expiry) {
+    await User.update(
+      { reset_token: token, reset_token_expiry: expiry },
+      { where: { id } }
+    );
   }
 
-  // Gjej me reset token
   async findByResetToken(token) {
     return User.findOne({
       where: {
-        resetToken:       token,
-        resetTokenExpiry: { [Op.gt]: new Date() }, // token nuk ka skaduar
+        reset_token:        token,
+        reset_token_expiry: { [Op.gt]: new Date() },
       },
     });
   }
 
-  // Fshi reset token pas përdorimit
   async clearResetToken(id) {
-    const user = await User.findByPk(id);
-    if (!user) return null;
-    await user.update({ resetToken: null, resetTokenExpiry: null });
-    return user;
+    await User.update(
+      { reset_token: null, reset_token_expiry: null },
+      { where: { id } }
+    );
   }
 
-  // Fshi user
   async delete(id) {
     const user = await User.findByPk(id);
     if (!user) return false;
@@ -104,7 +89,6 @@ class UserRepository {
     return true;
   }
 
-  // Numëro total users
   async count() {
     return User.count();
   }

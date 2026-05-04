@@ -3,7 +3,6 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// ✅ MATERIAL UI IMPORTS
 import { 
   Alert, 
   CircularProgress, 
@@ -280,11 +279,9 @@ export default function Login() {
         password 
       });
 
-      // ✅ KORRIGJIMI KRYESOR: Përdorim res.data.accessToken si në backend
-      if (res.data.success && res.data.accessToken) {
+      if (res.data.accessToken) {
         setSuccessOpen(true);
         setTimeout(() => {
-          // I kalojmë string-un e token-it funksionit login në Context
           login(res.data.accessToken); 
           navigate("/products");
         }, 1200);
@@ -377,6 +374,18 @@ export default function Login() {
                 className={`form-input ${errors.password ? "error" : ""}`}
               />
               {errors.password && <span className="field-error">{errors.password}</span>}
+            </div>
+
+            {/* FORGOT PASSWORD LINK */}
+            <div style={{ textAlign: "right", marginTop: "-16px", marginBottom: "16px" }}>
+              <Link 
+                to="/forgot-password" 
+                style={{ color: "#888880", fontSize: "11px", textDecoration: "none", letterSpacing: "1px" }}
+                onMouseOver={e => e.target.style.color = "#C9A84C"}
+                onMouseOut={e => e.target.style.color = "#888880"}
+              >
+                Forgot password?
+              </Link>
             </div>
 
             <button className="submit-btn" onClick={handleLogin} disabled={loading}>

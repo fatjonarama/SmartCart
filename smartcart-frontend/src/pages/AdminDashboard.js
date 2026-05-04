@@ -68,7 +68,7 @@ const AdminDashboard = () => {
         axios.get("http://localhost:5000/api/v1/orders", { headers }),
       ]);
       setStats(statsRes.data);
-      setUsers(usersRes.data);
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.users || usersRes.data.data || []);
       setProducts(productsRes.data.data || productsRes.data);
       setOrders(ordersRes.data);
       toast.success(t.dataLoaded);
