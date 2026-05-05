@@ -1,6 +1,6 @@
-const nodemailer = require("nodemailer");
+﻿const nodemailer = require("nodemailer");
 
-// ── Transporter ─────────────────────────────────
+// â”€â”€ Transporter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const transporter = nodemailer.createTransport({
   host:   process.env.SMTP_HOST   || "smtp.mailtrap.io",
   port:   parseInt(process.env.SMTP_PORT) || 587,
@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ── Template helper ──────────────────────────────
+// â”€â”€ Template helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const baseTemplate = (title, content) => `
 <!DOCTYPE html>
 <html>
@@ -38,18 +38,18 @@ const baseTemplate = (title, content) => `
       <div class="divider"></div>
       ${content}
     </div>
-    <div class="footer">© 2024 SmartCart. All rights reserved.<br/>This is an automated message, please do not reply.</div>
+    <div class="footer">Â© 2024 SmartCart. All rights reserved.<br/>This is an automated message, please do not reply.</div>
   </div>
 </body>
 </html>`;
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 1. Email konfirmimi i regjistrimit
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const sendWelcomeEmail = async ({ to, name }) => {
   const content = `
     <p>Dear <strong>${name}</strong>,</p>
-    <p>Welcome to <strong>SmartCart</strong> — your premium shopping destination.</p>
+    <p>Welcome to <strong>SmartCart</strong> â€” your premium shopping destination.</p>
     <p>Your account has been created successfully. You can now log in and start exploring our curated collection of premium products.</p>
     <div class="divider"></div>
     <p style="font-size:11px; color:#888880;">If you did not create this account, please ignore this email.</p>
@@ -57,15 +57,15 @@ const sendWelcomeEmail = async ({ to, name }) => {
   await transporter.sendMail({
     from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
-    subject: "Welcome to SmartCart ✦",
+    subject: "Welcome to SmartCart âœ¦",
     html:    baseTemplate("Welcome to SmartCart", content),
   });
-  console.log(`📧 Welcome email sent to ${to}`);
+  console.log(`ðŸ“§ Welcome email sent to ${to}`);
 };
 
-// ══════════════════════════════════════════════════
-// 2. Email verifikimi i llogarisë
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 2. Email verifikimi i llogarisÃ«
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const sendVerificationEmail = async ({ to, name, verificationToken }) => {
   const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
   const content = `
@@ -81,15 +81,15 @@ const sendVerificationEmail = async ({ to, name, verificationToken }) => {
   await transporter.sendMail({
     from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
-    subject: "Verify your SmartCart email ✦",
+    subject: "Verify your SmartCart email âœ¦",
     html:    baseTemplate("Email Verification", content),
   });
-  console.log(`📧 Verification email sent to ${to}`);
+  console.log(`ðŸ“§ Verification email sent to ${to}`);
 };
 
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 3. Email reset password
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const sendPasswordResetEmail = async ({ to, name, resetToken }) => {
   const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
   const content = `
@@ -109,22 +109,22 @@ const sendPasswordResetEmail = async ({ to, name, resetToken }) => {
     subject: "Reset your SmartCart password",
     html:    baseTemplate("Password Reset Request", content),
   });
-  console.log(`📧 Password reset email sent to ${to}`);
+  console.log(`ðŸ“§ Password reset email sent to ${to}`);
 };
 
-// ══════════════════════════════════════════════════
-// 4. Email konfirmimi i porosisë
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 4. Email konfirmimi i porosisÃ«
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const sendOrderConfirmationEmail = async ({ to, name, orderId, total, items = [], paymentMethod }) => {
   const itemsHtml = items.map(item => `
     <tr>
       <td style="padding:8px 0; border-bottom:1px solid rgba(201,168,76,0.1); font-size:13px; color:#1A1A1A;">${item.name || `Product #${item.product_id}`}</td>
       <td style="padding:8px 0; border-bottom:1px solid rgba(201,168,76,0.1); font-size:13px; color:#555550; text-align:center;">${item.quantity}</td>
-      <td style="padding:8px 0; border-bottom:1px solid rgba(201,168,76,0.1); font-size:13px; color:#C9A84C; text-align:right;">€${parseFloat(item.price * item.quantity).toFixed(2)}</td>
+      <td style="padding:8px 0; border-bottom:1px solid rgba(201,168,76,0.1); font-size:13px; color:#C9A84C; text-align:right;">â‚¬${parseFloat(item.price * item.quantity).toFixed(2)}</td>
     </tr>
   `).join("");
 
-  const pmLabels = { cash: "💵 Cash on Delivery", card: "💳 Credit/Debit Card", paypal: "🅿️ PayPal" };
+  const pmLabels = { cash: "ðŸ’µ Cash on Delivery", card: "ðŸ’³ Credit/Debit Card", paypal: "ðŸ…¿ï¸ PayPal" };
 
   const content = `
     <p>Dear <strong>${name}</strong>,</p>
@@ -152,7 +152,7 @@ const sendOrderConfirmationEmail = async ({ to, name, orderId, total, items = []
       <tfoot>
         <tr>
           <td colspan="2" style="padding-top:12px; font-size:11px; letter-spacing:2px; color:#888880; text-transform:uppercase;">Total</td>
-          <td style="padding-top:12px; font-size:20px; color:#C9A84C; text-align:right; font-weight:300;">€${parseFloat(total).toFixed(2)}</td>
+          <td style="padding-top:12px; font-size:20px; color:#C9A84C; text-align:right; font-weight:300;">â‚¬${parseFloat(total).toFixed(2)}</td>
         </tr>
       </tfoot>
     </table>` : ""}
@@ -163,15 +163,15 @@ const sendOrderConfirmationEmail = async ({ to, name, orderId, total, items = []
   await transporter.sendMail({
     from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
-    subject: `Order #${orderId} Confirmed ✦ SmartCart`,
+    subject: `Order #${orderId} Confirmed âœ¦ SmartCart`,
     html:    baseTemplate("Order Confirmed!", content),
   });
-  console.log(`📧 Order confirmation email sent to ${to} for order #${orderId}`);
+  console.log(`ðŸ“§ Order confirmation email sent to ${to} for order #${orderId}`);
 };
 
-// ══════════════════════════════════════════════════
-// 5. Email ndryshimi i fjalëkalimit
-// ══════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 5. Email ndryshimi i fjalÃ«kalimit
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const sendPasswordChangedEmail = async ({ to, name }) => {
   const content = `
     <p>Dear <strong>${name}</strong>,</p>
@@ -183,36 +183,12 @@ const sendPasswordChangedEmail = async ({ to, name }) => {
   await transporter.sendMail({
     from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
-    subject: "SmartCart — Password Changed",
+    subject: "SmartCart â€” Password Changed",
     html:    baseTemplate("Password Changed", content),
   });
-  console.log(`📧 Password changed email sent to ${to}`);
+  console.log(`ðŸ“§ Password changed email sent to ${to}`);
 };
 
-// ══════════════════════════════════════════════════
-// 5. Email verifikimi i llogarisë
-// ══════════════════════════════════════════════════
-const sendVerificationEmail = async ({ to, name, verificationToken }) => {
-  const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
-  const content = `
-    <p>Dear <strong>${name}</strong>,</p>
-    <p>Thank you for registering at <strong>SmartCart</strong>! Please verify your email address to activate your account.</p>
-    <p>Click the button below to verify your email. This link is valid for <strong>24 hours</strong>.</p>
-    <div style="text-align:center;">
-      <a href="${verifyUrl}" class="btn">Verify Email</a>
-    </div>
-    <div class="divider"></div>
-    <p style="font-size:11px; color:#888880;">If you did not create this account, please ignore this email.</p>
-    <p style="font-size:11px; color:#888880;">If the button does not work, copy and paste this link:<br/><a href="${verifyUrl}" style="color:#C9A84C;">${verifyUrl}</a></p>
-  `;
-  await transporter.sendMail({
-    from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-    to,
-    subject: "Verify your SmartCart email ✦",
-    html:    baseTemplate("Email Verification", content),
-  });
-  console.log(`📧 Verification email sent to ${to}`);
-};
 
 module.exports = {
   sendWelcomeEmail,
@@ -220,5 +196,4 @@ module.exports = {
   sendPasswordResetEmail,
   sendOrderConfirmationEmail,
   sendPasswordChangedEmail,
-  sendVerificationEmail,
 };
