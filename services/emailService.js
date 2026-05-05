@@ -189,10 +189,36 @@ const sendPasswordChangedEmail = async ({ to, name }) => {
   console.log(`📧 Password changed email sent to ${to}`);
 };
 
+// ══════════════════════════════════════════════════
+// 5. Email verifikimi i llogarisë
+// ══════════════════════════════════════════════════
+const sendVerificationEmail = async ({ to, name, verificationToken }) => {
+  const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+  const content = `
+    <p>Dear <strong>${name}</strong>,</p>
+    <p>Thank you for registering at <strong>SmartCart</strong>! Please verify your email address to activate your account.</p>
+    <p>Click the button below to verify your email. This link is valid for <strong>24 hours</strong>.</p>
+    <div style="text-align:center;">
+      <a href="${verifyUrl}" class="btn">Verify Email</a>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size:11px; color:#888880;">If you did not create this account, please ignore this email.</p>
+    <p style="font-size:11px; color:#888880;">If the button does not work, copy and paste this link:<br/><a href="${verifyUrl}" style="color:#C9A84C;">${verifyUrl}</a></p>
+  `;
+  await transporter.sendMail({
+    from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    to,
+    subject: "Verify your SmartCart email ✦",
+    html:    baseTemplate("Email Verification", content),
+  });
+  console.log(`📧 Verification email sent to ${to}`);
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendOrderConfirmationEmail,
   sendPasswordChangedEmail,
+  sendVerificationEmail,
 };
