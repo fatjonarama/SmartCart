@@ -206,11 +206,23 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div style={{ padding: "12px 16px", background: "rgba(33,150,243,0.05)", border: "1px solid rgba(33,150,243,0.15)", borderRadius: "4px", marginBottom: "24px" }}>
-              <p style={{ fontSize: "11px", color: "#2196F3", margin: 0, lineHeight: "1.6" }}>
-                🔒 Password is stored encrypted (bcrypt). Minimum 8 characters recommended.
-              </p>
-            </div>
+         <div style={{ padding: "12px 16px", background: "rgba(33,150,243,0.05)", border: "1px solid rgba(33,150,243,0.15)", borderRadius: "4px", marginBottom: "16px" }}>
+  <p style={{ fontSize: "11px", color: "#2196F3", margin: 0, lineHeight: "1.6" }}>
+    🔒 Password is stored encrypted (bcrypt). Minimum 8 characters recommended.
+  </p>
+</div>
+
+<div style={{ marginBottom: "24px" }}>
+  <p style={{ fontSize: "12px", color: grayColor, fontWeight: "300", margin: 0 }}>
+    Don't remember your current password?{" "}
+    <span
+      onClick={() => navigate("/forgot-password")}
+      style={{ color: "#C9A84C", cursor: "pointer", textDecoration: "underline", fontSize: "12px" }}
+    >
+      Reset it here
+    </span>
+  </p>
+</div>
 
             <button onClick={handleChangePassword} disabled={saving}
               style={{ padding: "14px 36px", background: saving ? "rgba(201,168,76,0.4)" : "#C9A84C", color: "#0A0A0A", border: "none", borderRadius: "4px", cursor: saving ? "not-allowed" : "pointer", fontSize: "10px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif" }}>
