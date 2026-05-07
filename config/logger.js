@@ -1,4 +1,13 @@
 const winston = require("winston");
+const { ElasticsearchTransport } = require("winston-elasticsearch");
+
+const esTransportOpts = {
+  level: "info",
+  clientOpts: {
+    node: "http://localhost:9200",
+  },
+  indexPrefix: "smartcart-logs",
+};
 
 const logger = winston.createLogger({
   level: "info",
@@ -12,6 +21,7 @@ const logger = winston.createLogger({
     new winston.transports.Console(),
     new winston.transports.File({ filename: "logs/error.log", level: "error" }),
     new winston.transports.File({ filename: "logs/combined.log" }),
+    new ElasticsearchTransport(esTransportOpts),
   ],
 });
 
