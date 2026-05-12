@@ -22,9 +22,9 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
-  const bg = isDark ? "#0A0A0A" : "#F5F5F0";
-  const textColor = isDark ? "#F5F0E8" : "#1A1A1A";
-  const grayColor = isDark ? "#888880" : "#666660";
+  const bg          = isDark ? "#0A0A0A" : "#F5F5F0";
+  const textColor   = isDark ? "#F5F0E8" : "#1A1A1A";
+  const grayColor   = isDark ? "#888880" : "#666660";
   const borderColor = isDark ? "rgba(201,168,76,0.15)" : "rgba(201,168,76,0.3)";
 
   useEffect(() => {
@@ -87,15 +87,23 @@ export default function ProductDetail() {
             background: cardColors[product.id % cardColors.length],
             border: `1px solid ${borderColor}`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            marginBottom: "20px"
+            marginBottom: "20px", overflow: "hidden"
           }}>
-            <span style={{
-              fontFamily: "Cormorant Garamond, serif",
-              fontSize: "160px", fontWeight: "300",
-              color: "rgba(255,255,255,0.08)", userSelect: "none"
-            }}>
-              {product.name.charAt(0).toUpperCase()}
-            </span>
+            {product.image_url ? (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <span style={{
+                fontFamily: "Cormorant Garamond, serif",
+                fontSize: "160px", fontWeight: "300",
+                color: "rgba(255,255,255,0.08)", userSelect: "none"
+              }}>
+                {product.name?.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
 
           {/* THUMBNAIL ROW */}
@@ -105,16 +113,24 @@ export default function ProductDetail() {
                 width: "80px", height: "80px", borderRadius: "4px",
                 background: cardColors[(product.id + i) % cardColors.length],
                 border: i === 1 ? "2px solid #C9A84C" : `1px solid ${borderColor}`,
-                cursor: "pointer",
+                cursor: "pointer", overflow: "hidden",
                 display: "flex", alignItems: "center", justifyContent: "center"
               }}>
-                <span style={{
-                  fontFamily: "Cormorant Garamond, serif",
-                  fontSize: "28px", fontWeight: "300",
-                  color: "rgba(255,255,255,0.1)"
-                }}>
-                  {product.name.charAt(0)}
-                </span>
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <span style={{
+                    fontFamily: "Cormorant Garamond, serif",
+                    fontSize: "28px", fontWeight: "300",
+                    color: "rgba(255,255,255,0.1)"
+                  }}>
+                    {product.name?.charAt(0)}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -122,7 +138,6 @@ export default function ProductDetail() {
 
         {/* RIGHT — INFO */}
         <div>
-          {/* CATEGORY */}
           <div style={{
             fontSize: "10px", letterSpacing: "4px",
             color: "#C9A84C", textTransform: "uppercase", marginBottom: "16px"
@@ -130,7 +145,6 @@ export default function ProductDetail() {
             {product.category || "Premium"}
           </div>
 
-          {/* NAME */}
           <h1 style={{
             fontFamily: "Cormorant Garamond, serif",
             fontSize: "48px", fontWeight: "300",
@@ -139,7 +153,6 @@ export default function ProductDetail() {
             {product.name}
           </h1>
 
-          {/* PRICE */}
           <div style={{
             fontFamily: "Cormorant Garamond, serif",
             fontSize: "42px", fontWeight: "300",
@@ -148,10 +161,8 @@ export default function ProductDetail() {
             €{parseFloat(product.price).toFixed(2)}
           </div>
 
-          {/* DIVIDER */}
           <div style={{ height: "1px", background: borderColor, marginBottom: "32px" }} />
 
-          {/* DESCRIPTION */}
           <div style={{ marginBottom: "32px" }}>
             <div style={{
               fontSize: "10px", letterSpacing: "3px",
@@ -163,11 +174,10 @@ export default function ProductDetail() {
               fontSize: "14px", color: grayColor,
               lineHeight: "1.8", fontWeight: "300"
             }}>
-              {product.description || "Premium quality product crafted with exceptional materials and attention to detail. Experience luxury at its finest."}
+              {product.description || "Premium quality product crafted with exceptional materials and attention to detail."}
             </p>
           </div>
 
-          {/* STOCK */}
           <div style={{ marginBottom: "32px", display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
               width: "8px", height: "8px", borderRadius: "50%",
@@ -178,7 +188,6 @@ export default function ProductDetail() {
             </span>
           </div>
 
-          {/* QUANTITY */}
           <div style={{ marginBottom: "24px" }}>
             <div style={{
               fontSize: "10px", letterSpacing: "3px",
@@ -190,33 +199,21 @@ export default function ProductDetail() {
               display: "flex", alignItems: "center",
               border: `1px solid ${borderColor}`, width: "fit-content"
             }}>
-              <button
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                style={{
-                  width: "44px", height: "44px", background: "transparent",
-                  border: "none", color: "#C9A84C", fontSize: "18px",
-                  cursor: "pointer", fontFamily: "Montserrat, sans-serif"
-                }}
-              >−</button>
-              <span style={{
-                width: "44px", textAlign: "center",
-                fontSize: "14px", color: textColor
-              }}>{quantity}</span>
-              <button
-                onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
-                style={{
-                  width: "44px", height: "44px", background: "transparent",
-                  border: "none", color: "#C9A84C", fontSize: "18px",
-                  cursor: "pointer", fontFamily: "Montserrat, sans-serif"
-                }}
-              >+</button>
+              <button onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                style={{ width: "44px", height: "44px", background: "transparent", border: "none", color: "#C9A84C", fontSize: "18px", cursor: "pointer", fontFamily: "Montserrat, sans-serif" }}>
+                −
+              </button>
+              <span style={{ width: "44px", textAlign: "center", fontSize: "14px", color: textColor }}>
+                {quantity}
+              </span>
+              <button onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
+                style={{ width: "44px", height: "44px", background: "transparent", border: "none", color: "#C9A84C", fontSize: "18px", cursor: "pointer", fontFamily: "Montserrat, sans-serif" }}>
+                +
+              </button>
             </div>
           </div>
 
-          {/* ADD TO CART */}
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
+          <button onClick={handleAddToCart} disabled={product.stock === 0}
             style={{
               width: "100%", padding: "18px",
               background: added ? "#4CAF50" : "#C9A84C",
@@ -227,25 +224,14 @@ export default function ProductDetail() {
               cursor: product.stock === 0 ? "not-allowed" : "pointer",
               opacity: product.stock === 0 ? 0.5 : 1,
               transition: "all 0.3s", marginBottom: "16px"
-            }}
-          >
+            }}>
             {added ? `✓ ${t.added}` : t.addToCart}
           </button>
 
-          {/* FEATURES */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr",
-            gap: "16px", marginTop: "32px"
-          }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "32px" }}>
             {["Free Shipping", "Secure Payment", "Easy Returns", "24/7 Support"].map((f, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center",
-                gap: "10px", fontSize: "11px", color: grayColor
-              }}>
-                <div style={{
-                  width: "5px", height: "5px",
-                  border: "1px solid #C9A84C", borderRadius: "50%"
-                }} />
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: grayColor }}>
+                <div style={{ width: "5px", height: "5px", border: "1px solid #C9A84C", borderRadius: "50%" }} />
                 {f}
               </div>
             ))}
