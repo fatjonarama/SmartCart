@@ -21,26 +21,28 @@ class UserService {
   }
 
   // ══════════════════════════════════════════════
-  // REGISTER — me email verification
+  // REGISTER
   // ══════════════════════════════════════════════
   async register({ name, email, password, role = "user" }, ip) {
     const existing = await userRepo.findByEmail(email);
     if (existing) throw new Error("Ky email është regjistruar më parë!");
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await userRepo.create({ name, email, password: hashedPassword, role });
+    const user = await userRepo.create({ name, email, password: hashedPassword, role, is_verified: true });
 
-    // Gjenero verification token
+    // Dërgo email verifikimi në background — nuk bllokon response
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    await userRepo.saveVerificationToken(user.id, verificationToken);
+    setImmediate(() => {
+      userRepo.saveVerificationToken(user.id, verificationToken).catch(() => {});
+      emailService.sendVerificationEmail({ to: email, name, verificationToken })
+        .catch(e => console.warn("Verification email failed:", e.message));
+    });
 
-    // Dërgo email verifikimi
-    await emailService.sendVerificationEmail({ to: email, name, verificationToken })
-      .catch(e => console.warn("Verification email failed:", e.message));
+    setImmediate(() => {
+      this.audit(user.id, "REGISTER", { name, email, role }, ip).catch(() => {});
+    });
 
-    await this.audit(user.id, "REGISTER", { name, email, role }, ip);
-
-    return { userId: user.id, role: user.role, message: "Kontrollo email-in për të aktivizuar llogarinë!" };
+    return { userId: user.id, role: user.role, message: "✅ Regjistrimi u krye me sukses!" };
   }
 
   // ══════════════════════════════════════════════
@@ -52,12 +54,11 @@ class UserService {
 
     await userRepo.verifyUser(user.id);
     await this.audit(user.id, "EMAIL_VERIFIED", {}, ip);
-
     return true;
   }
 
   // ══════════════════════════════════════════════
-  // LOGIN — kontrollo is_verified
+  // LOGIN
   // ══════════════════════════════════════════════
   async login({ email, password }, ip) {
     const user = await userRepo.findByEmail(email);
@@ -67,13 +68,11 @@ class UserService {
       throw new Error("Email ose fjalëkalim i gabuar!");
     }
 
-    // Business rule: llogaria duhet të jetë e verifikuar
-    if (!user.is_verified) {
-      throw new Error("Llogaria nuk është aktivizuar! Kontrollo email-in tënd.");
-    }
-
     const tokens = this.generateTokens(user);
-    await this.audit(user.id, "LOGIN", { email }, ip);
+
+    setImmediate(() => {
+      this.audit(user.id, "LOGIN", { email }, ip).catch(() => {});
+    });
 
     return {
       ...tokens,
@@ -119,7 +118,12 @@ class UserService {
 
     const hashed = await bcrypt.hash(newPassword, 12);
     await userRepo.updatePassword(userId, hashed);
-    await emailService.sendPasswordChangedEmail({ to: user.email, name: user.name }).catch(e => console.warn("Email failed:", e.message));
+
+    setImmediate(() => {
+      emailService.sendPasswordChangedEmail({ to: user.email, name: user.name })
+        .catch(e => console.warn("Email failed:", e.message));
+    });
+
     await this.audit(userId, "PASSWORD_CHANGE", {}, ip);
     return true;
   }
@@ -132,8 +136,16 @@ class UserService {
     const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
     await userRepo.saveResetToken(user.id, resetToken, tokenExpiry);
-    await emailService.sendPasswordResetEmail({ to: user.email, name: user.name, resetToken }).catch(e => console.warn("Email failed:", e.message));
-    await this.audit(user.id, "PASSWORD_RESET_REQUESTED", { email }, ip);
+
+    setImmediate(() => {
+      emailService.sendPasswordResetEmail({ to: user.email, name: user.name, resetToken })
+        .catch(e => console.warn("Email failed:", e.message));
+    });
+
+    setImmediate(() => {
+      this.audit(user.id, "PASSWORD_RESET_REQUESTED", { email }, ip).catch(() => {});
+    });
+
     return true;
   }
 
@@ -145,7 +157,12 @@ class UserService {
     const hashed = await bcrypt.hash(newPassword, 12);
     await userRepo.updatePassword(user.id, hashed);
     await userRepo.clearResetToken(user.id);
-    await emailService.sendPasswordChangedEmail({ to: user.email, name: user.name }).catch(e => console.warn("Email failed:", e.message));
+
+    setImmediate(() => {
+      emailService.sendPasswordChangedEmail({ to: user.email, name: user.name })
+        .catch(e => console.warn("Email failed:", e.message));
+    });
+
     await this.audit(user.id, "PASSWORD_RESET_COMPLETED", {}, ip);
     return true;
   }

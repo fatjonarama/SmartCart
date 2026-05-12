@@ -1,33 +1,10 @@
 ﻿const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const { Op } = require("sequelize"); 
 const Product = require("../models/Product");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const { redisClient } = require("../config/redis");
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = "uploads/products";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `product_${Date.now()}${path.extname(file.originalname)}`);
-  }
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    cb(null, allowed.includes(file.mimetype));
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }
-});
 
 const productSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
@@ -35,6 +12,7 @@ const productSchema = Joi.object({
   description: Joi.string().max(500).optional().allow(""),
   category: Joi.string().optional().allow(""),
   stock: Joi.number().integer().min(0).optional(),
+  image_url: Joi.string().uri().optional().allow("", null),
 });
 
 const updateProductSchema = Joi.object({
@@ -43,6 +21,7 @@ const updateProductSchema = Joi.object({
   description: Joi.string().max(500).optional().allow(""),
   category: Joi.string().optional().allow(""),
   stock: Joi.number().integer().min(0).optional(),
+  image_url: Joi.string().uri().optional().allow("", null),
 });
 
 router.get("/", async (req, res) => {
@@ -126,16 +105,12 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", protect, authorizeRoles("admin"), upload.single("image"), async (req, res) => {
+router.post("/", protect, authorizeRoles("admin"), async (req, res) => {
   const { error } = productSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
   try {
-    const image_url = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/products/${req.file.filename}`
-      : null;
-
-    const product = await Product.create({ ...req.body, image_url });
+    const product = await Product.create({ ...req.body });
     try { await redisClient.flushAll(); } catch (e) {}
     res.status(201).json({ message: "✅ Produkti u krijua!", data: product });
   } catch (err) {
@@ -143,7 +118,7 @@ router.post("/", protect, authorizeRoles("admin"), upload.single("image"), async
   }
 });
 
-router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), async (req, res) => {
+router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   const { error } = updateProductSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
@@ -151,16 +126,7 @@ router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), asy
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
 
-    const updateData = { ...req.body };
-    if (req.file) {
-      if (product.image_url) {
-        const oldPath = path.join("uploads/products", path.basename(product.image_url));
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      updateData.image_url = `${req.protocol}://${req.get("host")}/uploads/products/${req.file.filename}`;
-    }
-
-    await product.update(updateData);
+    await product.update({ ...req.body });
     try { await redisClient.flushAll(); } catch (e) {}
     res.json({ message: "✅ Produkti u përditësua!", data: product });
   } catch (err) {
@@ -172,11 +138,6 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
-
-    if (product.image_url) {
-      const imgPath = path.join("uploads/products", path.basename(product.image_url));
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    }
 
     await product.destroy();
     try { await redisClient.flushAll(); } catch (e) {}

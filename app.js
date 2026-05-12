@@ -99,6 +99,7 @@ app.use("/api/v1/products", require("./routes/productRoutes"));
 app.use("/api/v1/orders",   require("./routes/orderRoutes"));
 app.use("/api/v1/reviews",  require("./routes/reviewRoutes"));
 app.use("/api/v1/stats",    require("./routes/statsRoutes"));
+app.set('trust proxy', 1);
 
 app.use("/health", require("./routes/healthRoutes"));
 

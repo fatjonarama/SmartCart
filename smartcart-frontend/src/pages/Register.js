@@ -31,7 +31,7 @@ export default function Register() {
     try {
       await axios.post("https://smartcart-ks.up.railway.app/api/v1/users/register", form);
       setSuccess(true);
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/login"), 500);
     } catch (err) {
       setMessage(err.response?.data?.message || t.registerFailed);
     }
