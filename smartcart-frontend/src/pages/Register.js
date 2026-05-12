@@ -29,7 +29,7 @@ export default function Register() {
     setLoading(true);
     setMessage("");
     try {
-      await axios.post("http://localhost:5000/api/v1/users/register", form);
+      await axios.post("https://smartcart-ks.up.railway.app/api/v1/users/register", form);
       setSuccess(true);
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {

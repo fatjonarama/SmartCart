@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 export default function ForgotPassword() {
   const [email,setEmail]=useState("");const [loading,setLoading]=useState(false);const [sent,setSent]=useState(false);const [error,setError]=useState("");
-  const handleSubmit=async()=>{if(!/\S+@\S+\.\S+/.test(email)){setError("Please enter a valid email.");return;}setLoading(true);setError("");try{await axios.post("http://localhost:5000/api/v1/users/forgot-password",{email});setSent(true);}catch{setError("An error occurred.");}setLoading(false);};
+  const handleSubmit=async()=>{if(!/\S+@\S+\.\S+/.test(email)){setError("Please enter a valid email.");return;}setLoading(true);setError("");try{await axios.post("https://smartcart-ks.up.railway.app/api/v1/users/forgot-password",{email});setSent(true);}catch{setError("An error occurred.");}setLoading(false);};
   const s=`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
   .fp-root{min-height:100vh;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;padding:20px;}
   .fp-input{width:100%;padding:14px 0;background:transparent;border:none;border-bottom:1px solid rgba(245,240,232,0.15);color:#F5F0E8;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:300;outline:none;transition:border-color 0.3s;box-sizing:border-box;}

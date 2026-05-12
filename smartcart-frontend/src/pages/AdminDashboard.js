@@ -61,11 +61,11 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const [statsRes, usersRes, productsRes, ordersRes, returnsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/v1/stats/overview", { headers }),
-        axios.get("http://localhost:5000/api/v1/users", { headers }),
-        axios.get("http://localhost:5000/api/v1/products", { headers }),
-        axios.get("http://localhost:5000/api/v1/orders", { headers }),
-        axios.get("http://localhost:5000/api/v1/orders/returns/all", { headers }),
+        axios.get("https://smartcart-ks.up.railway.app/api/v1/stats/overview", { headers }),
+        axios.get("https://smartcart-ks.up.railway.app/api/v1/users", { headers }),
+        axios.get("https://smartcart-ks.up.railway.app/api/v1/products", { headers }),
+        axios.get("https://smartcart-ks.up.railway.app/api/v1/orders", { headers }),
+        axios.get("https://smartcart-ks.up.railway.app/api/v1/orders/returns/all", { headers }),
       ]);
       setStats(statsRes.data);
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.users || usersRes.data.data || []);
@@ -80,7 +80,7 @@ const AdminDashboard = () => {
   const handleResolveReturn = async (orderId, action, adminNote) => {
     try {
       await axios.patch(
-        `http://localhost:5000/api/v1/orders/returns/${orderId}/resolve`,
+        `https://smartcart-ks.up.railway.app/api/v1/orders/returns/${orderId}/resolve`,
         { action, admin_note: adminNote || "" },
         { headers }
       );
@@ -141,12 +141,12 @@ const AdminDashboard = () => {
       if (imageFile) fd.append("image", imageFile);
       const multiHeaders = { ...headers, "Content-Type": "multipart/form-data" };
       if (modalType === "editProduct") {
-        const res = await axios.put(`http://localhost:5000/api/v1/products/${selectedItem.id}`, fd, { headers: multiHeaders });
+        const res = await axios.put(`https://smartcart-ks.up.railway.app/api/v1/products/${selectedItem.id}`, fd, { headers: multiHeaders });
         const updated = res.data.data || { ...selectedItem, ...formData, image_url: imagePreview };
         setProducts(products.map(p => p.id === selectedItem.id ? { ...p, ...updated } : p));
         toast.success(t.productUpdated);
       } else {
-        const res = await axios.post("http://localhost:5000/api/v1/products", fd, { headers: multiHeaders });
+        const res = await axios.post("https://smartcart-ks.up.railway.app/api/v1/products", fd, { headers: multiHeaders });
         setProducts([...products, res.data.data]);
         toast.success(t.productAdded);
       }
@@ -163,7 +163,7 @@ const AdminDashboard = () => {
     if (Object.keys(errors).length > 0) return;
     setSavingUser(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/v1/users/register", userForm, { headers });
+      const res = await axios.post("https://smartcart-ks.up.railway.app/api/v1/users/register", userForm, { headers });
       const newUser = res.data.user || { id: Date.now(), ...userForm };
       setUsers(prev => [...prev, newUser]);
       setShowUserModal(false);
@@ -177,7 +177,7 @@ const AdminDashboard = () => {
   const deleteUser = async (id) => {
     if (!window.confirm(t.confirmDelete)) return;
     try {
-      await axios.delete(`http://localhost:5000/api/v1/users/${id}`, { headers });
+      await axios.delete(`https://smartcart-ks.up.railway.app/api/v1/users/${id}`, { headers });
       setUsers(users.filter(u => u.id !== id));
       toast.success(t.userDeleted);
     } catch { toast.error(t.errorDeleting); }
@@ -186,7 +186,7 @@ const AdminDashboard = () => {
   const deleteProduct = async (id) => {
     if (!window.confirm(t.confirmDelete)) return;
     try {
-      await axios.delete(`http://localhost:5000/api/v1/products/${id}`, { headers });
+      await axios.delete(`https://smartcart-ks.up.railway.app/api/v1/products/${id}`, { headers });
       setProducts(products.filter(p => p.id !== id));
       toast.success(t.productDeleted);
     } catch { toast.error(t.errorDeleting); }
@@ -194,7 +194,7 @@ const AdminDashboard = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      await axios.put(`http://localhost:5000/api/v1/orders/${orderId}`, { status: newStatus }, { headers });
+      await axios.put(`https://smartcart-ks.up.railway.app/api/v1/orders/${orderId}`, { status: newStatus }, { headers });
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
       toast.success("✅ Statusi u përditësua!");
     } catch { toast.error("❌ Gabim!"); }

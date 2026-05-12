@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ['nodejs']
+
+[phases.install]
+cmds = ['npm install', 'cd smartcart-frontend && npm install']
+
+[phases.build]
+cmds = ['cd smartcart-frontend && npm run build']
+
+[start]
+cmd = 'npm start'

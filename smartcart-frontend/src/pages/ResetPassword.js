@@ -12,7 +12,7 @@ export default function ResetPassword() {
 
   const handleReset = async () => {
     try {
-      await axios.post("http://localhost:5000/api/v1/users/reset-password", { token, newPassword: password });
+      await axios.post("https://smartcart-ks.up.railway.app/api/v1/users/reset-password", { token, newPassword: password });
       setSuccess(true);
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {

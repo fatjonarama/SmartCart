@@ -230,7 +230,7 @@ export default function MyOrders() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    axios.get("http://localhost:5000/api/v1/orders/my", { headers: { Authorization: `Bearer ${token}` } })
+    axios.get("https://smartcart-ks.up.railway.app/api/v1/orders/my", { headers: { Authorization: `Bearer ${token}` } })
       .then(res => setOrders(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -243,7 +243,7 @@ export default function MyOrders() {
     setCancellingId(orderId);
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(`http://localhost:5000/api/v1/orders/${orderId}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`https://smartcart-ks.up.railway.app/api/v1/orders/${orderId}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } });
       setOrders(prev => prev.map(o => o.id===orderId ? { ...o, status:"cancelled" } : o));
       setTimeout(() => setOrders(prev => prev.filter(o => o.id!==orderId)), 5*60*1000);
     } catch (err) { alert(err.response?.data?.message || t.cancelError); }
@@ -254,7 +254,7 @@ export default function MyOrders() {
     try {
       const token   = localStorage.getItem("token");
       const payload = type==="exchange" ? { reason, note } : { note };
-      await axios.patch(`http://localhost:5000/api/v1/orders/${orderId}/${type}`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`https://smartcart-ks.up.railway.app/api/v1/orders/${orderId}/${type}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       setOrders(prev => prev.map(o => o.id===orderId ? { ...o, status:type } : o));
       setExchangeModal(null);
       setReturnModal(null);

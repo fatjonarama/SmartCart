@@ -37,7 +37,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (activeTab !== "orders") return;
     setOrdersLoading(true);
-    axios.get("http://localhost:5000/api/v1/orders/my", { headers })
+    axios.get("https://smartcart-ks.up.railway.app/api/v1/orders/my", { headers })
       .then(res => setOrders(res.data))
       .catch(() => toast.error("Error loading orders."))
       .finally(() => setOrdersLoading(false));
@@ -48,7 +48,7 @@ export default function ProfilePage() {
     if (!/\S+@\S+\.\S+/.test(email)) { toast.error("Invalid email."); return; }
     setSaving(true);
     try {
-      const res = await axios.put("http://localhost:5000/api/v1/users/profile", { name, email }, { headers });
+      const res = await axios.put("https://smartcart-ks.up.railway.app/api/v1/users/profile", { name, email }, { headers });
       if (setUser) setUser(res.data.user || { ...user, name, email });
       toast.success(t.profileUpdated || "✅ Profile updated!");
     } catch (err) {
@@ -63,7 +63,7 @@ export default function ProfilePage() {
     if (newPass !== confirmPass) { toast.error("Passwords do not match."); return; }
     setSaving(true);
     try {
-      await axios.put("http://localhost:5000/api/v1/users/password", { currentPassword: currentPass, newPassword: newPass }, { headers });
+      await axios.put("https://smartcart-ks.up.railway.app/api/v1/users/password", { currentPassword: currentPass, newPassword: newPass }, { headers });
       toast.success(t.passwordChanged || "✅ Password changed!");
       setCurrentPass(""); setNewPass(""); setConfirmPass("");
     } catch (err) {

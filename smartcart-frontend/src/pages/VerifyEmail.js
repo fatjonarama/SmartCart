@@ -11,7 +11,7 @@ export default function VerifyEmail() {
     const token = searchParams.get("token");
     if (!token) { setStatus("error"); return; }
 
-    axios.get(`http://localhost:5000/api/v1/users/verify-email?token=${token}`)
+    axios.get(`https://smartcart-ks.up.railway.app/api/v1/users/verify-email?token=${token}`)
       .then(() => {
         setStatus("success");
         setTimeout(() => navigate("/login"), 3000);

@@ -230,7 +230,7 @@ function PaymentModal({ cartTotal, cart, onClose, onSuccess, isDark }) {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/v1/orders", {
+      await axios.post("https://smartcart-ks.up.railway.app/api/v1/orders", {
         total_price: cartTotal.toFixed(2),
         payment_method: method,
         items: cart.map(item => ({ product_id: item.id, quantity: item.quantity, price: item.price })),
@@ -247,7 +247,7 @@ function PaymentModal({ cartTotal, cart, onClose, onSuccess, isDark }) {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/v1/orders", {
+      await axios.post("https://smartcart-ks.up.railway.app/api/v1/orders", {
         total_price: cartTotal.toFixed(2),
         payment_method: "paypal",
         items: cart.map(item => ({ product_id: item.id, quantity: item.quantity, price: item.price })),

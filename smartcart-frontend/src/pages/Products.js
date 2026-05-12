@@ -51,7 +51,7 @@ export default function Products() {
   const searchBorder = isDark ? "rgba(201,168,76,0.18)" : "rgba(201,168,76,0.3)";
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/v1/products")
+    axios.get("https://smartcart-ks.up.railway.app/api/v1/products")
       .then(res => {
         const data = res.data.data || res.data;
         setProducts(data);

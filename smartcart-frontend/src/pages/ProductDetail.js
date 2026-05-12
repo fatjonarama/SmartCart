@@ -28,7 +28,7 @@ export default function ProductDetail() {
   const borderColor = isDark ? "rgba(201,168,76,0.15)" : "rgba(201,168,76,0.3)";
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/v1/products/${id}`)
+    axios.get(`https://smartcart-ks.up.railway.app/api/v1/products/${id}`)
       .then(res => {
         setProduct(res.data.data || res.data);
         setLoading(false);

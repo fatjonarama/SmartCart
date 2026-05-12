@@ -2,13 +2,14 @@
   "name": "smartcart-backend",
   "version": "1.0.0",
   "main": "app.js",
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "jest --coverage --forceExit",
-    "test:watch": "jest --watch",
-    "test:verbose": "jest --verbose --coverage --forceExit"
-  },
+ "scripts": {
+  "start": "node app.js",
+  "dev": "nodemon app.js",
+  "build": "cd smartcart-frontend && npm install && npm run build",
+  "test": "jest --coverage --forceExit",
+  "test:watch": "jest --watch",
+  "test:verbose": "jest --verbose --coverage --forceExit"
+},
   "jest": {
     "testEnvironment": "node",
     "coverageDirectory": "coverage",

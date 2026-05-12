@@ -274,7 +274,7 @@ export default function Login() {
     setMessage("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/v1/users/login", { 
+      const res = await axios.post("https://smartcart-ks.up.railway.app/api/v1/users/login", { 
         email, 
         password 
       });

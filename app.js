@@ -118,8 +118,6 @@ app.get("/api/services", (req, res) => res.json({
   health:    `http://localhost:${process.env.PORT || 5000}/health/detail`,
 }));
 
-app.get("/", (req, res) => res.json({ message: "SmartCart API running!", status: "Ready" }));
-
 app.use((err, req, res, next) => {
   logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.ip}`);
   res.status(err.status || 500).json({
@@ -128,6 +126,19 @@ app.use((err, req, res, next) => {
       : err.message,
   });
 });
+
+// ══════════════════════════════════════════════════
+// SERVE FRONTEND
+// ══════════════════════════════════════════════════
+const frontendBuild = path.join(__dirname, "smartcart-frontend", "build");
+if (fs.existsSync(frontendBuild)) {
+  app.use(express.static(frontendBuild));
+  app.get("/{*splat}", (req, res) => {
+    if (!req.path.startsWith("/api") && !req.path.startsWith("/health")) {
+      res.sendFile(path.join(frontendBuild, "index.html"));
+    }
+  });
+}
 
 module.exports = app;
 
