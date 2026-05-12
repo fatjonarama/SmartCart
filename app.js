@@ -10,10 +10,8 @@ const swaggerUi    = require("swagger-ui-express");
 const swaggerSpec  = require("./config/swagger");
 const logger       = require("./config/logger");
 
-// ── MONITORING ────────────────────────────────────
 const { metricsMiddleware, metricsRoute } = require("./middleware/metricsMiddleware");
 
-// ── SECURITY ──────────────────────────────────────
 const {
   xssProtection,
   apiLimiter,
@@ -23,9 +21,6 @@ const {
 
 const app = express();
 
-// ══════════════════════════════════════════════════
-// 1. SECURITY HEADERS (Helmet.js)
-// ══════════════════════════════════════════════════
 app.use((req, res, next) => {
   res.setHeader("X-API-Gateway", "SmartCart-Express-Gateway-v1");
   next();
@@ -52,9 +47,6 @@ app.use(helmet({
   hidePoweredBy:  true,
 }));
 
-// ══════════════════════════════════════════════════
-// 2. CORS
-// ══════════════════════════════════════════════════
 app.use(cors({
   origin:      process.env.ALLOWED_ORIGINS?.split(",") || "*",
   credentials: true,
@@ -62,43 +54,25 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// ══════════════════════════════════════════════════
-// 3. BODY PARSING
-// ══════════════════════════════════════════════════
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// ══════════════════════════════════════════════════
-// 4. INPUT SANITIZATION
-// XSS vetëm për products dhe orders — jo për user routes (email/password)
-// SQL Injection për të gjitha API routes
-// ══════════════════════════════════════════════════
 app.use("/api/v1/products", xssProtection);
 app.use("/api/v1/orders",   xssProtection);
 app.use("/api/v1/reviews",  xssProtection);
-// SQL Injection - aplikohet vetëm te routes specifike, jo user routes
 app.use("/api/v1/products", sqlInjectionProtection);
 app.use("/api/v1/orders",   sqlInjectionProtection);
 app.use("/api/v1/reviews",  sqlInjectionProtection);
 app.use("/api/v1/stats",    sqlInjectionProtection);
 
-// ══════════════════════════════════════════════════
-// 5. RATE LIMITING
-// ══════════════════════════════════════════════════
 app.use("/api/", apiLimiter);
-app.use("/api/v1/users/login",          authLimiter);
-app.use("/api/v1/users/register",       authLimiter);
+app.use("/api/v1/users/login",           authLimiter);
+app.use("/api/v1/users/register",        authLimiter);
 app.use("/api/v1/users/forgot-password", authLimiter);
 
-// ══════════════════════════════════════════════════
-// 6. STATIC FILES & LOGGING
-// ══════════════════════════════════════════════════
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(morgan("combined", { stream: { write: (msg) => logger.info(msg.trim()) } }));
 
-// ══════════════════════════════════════════════════
-// 7. MONITORING
-// ══════════════════════════════════════════════════
 app.get("/metrics", metricsRoute);
 app.use(metricsMiddleware);
 
@@ -118,28 +92,16 @@ app.get("/status", (req, res) => {
   });
 });
 
-// ══════════════════════════════════════════════════
-// 8. SWAGGER
-// ══════════════════════════════════════════════════
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// ══════════════════════════════════════════════════
-// 9. ROUTES
-// ══════════════════════════════════════════════════
 app.use("/api/v1/users",    require("./routes/userRoutes"));
 app.use("/api/v1/products", require("./routes/productRoutes"));
 app.use("/api/v1/orders",   require("./routes/orderRoutes"));
 app.use("/api/v1/reviews",  require("./routes/reviewRoutes"));
 app.use("/api/v1/stats",    require("./routes/statsRoutes"));
 
-// ══════════════════════════════════════════════════
-// 10. HEALTH
-// ══════════════════════════════════════════════════
 app.use("/health", require("./routes/healthRoutes"));
 
-// ══════════════════════════════════════════════════
-// 11. INFO ENDPOINT
-// ══════════════════════════════════════════════════
 app.get("/api/services", (req, res) => res.json({
   status:    "Healthy",
   version:   "v1.0.0",
@@ -158,9 +120,6 @@ app.get("/api/services", (req, res) => res.json({
 
 app.get("/", (req, res) => res.json({ message: "SmartCart API running!", status: "Ready" }));
 
-// ══════════════════════════════════════════════════
-// 12. ERROR HANDLER
-// ══════════════════════════════════════════════════
 app.use((err, req, res, next) => {
   logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.ip}`);
   res.status(err.status || 500).json({
@@ -172,9 +131,6 @@ app.use((err, req, res, next) => {
 
 module.exports = app;
 
-// ══════════════════════════════════════════════════
-// 13. START SERVER
-// ══════════════════════════════════════════════════
 if (require.main === module) {
   const Consul         = require("consul");
   const CircuitBreaker = require("opossum");
@@ -194,16 +150,23 @@ if (require.main === module) {
 
   async function startServer() {
     try {
-      await sequelize.authenticate(); console.log("MySQL Connected!");
-      await sequelize.sync();
-      await connectMongo();           console.log("MongoDB Connected!");
+      await sequelize.authenticate();
+      console.log("MySQL Connected!");
+      await sequelize.sync({ alter: false });
+
+      await connectMongo();
+      console.log("MongoDB Connected!");
 
       try {
         const { connectRedis } = require("./config/redis");
-        await connectRedis();         console.log("Redis Connected!");
+        await connectRedis();
+        console.log("Redis Connected!");
       } catch { console.log("Redis skip..."); }
 
-      await messageQueue.connectRabbitMQ(); console.log("RabbitMQ Connected!");
+      try {
+        await messageQueue.connectRabbitMQ();
+        console.log("RabbitMQ Connected!");
+      } catch { console.log("RabbitMQ skip..."); }
 
       try {
         await consul.agent.service.register({
@@ -220,6 +183,7 @@ if (require.main === module) {
       const PORT = process.env.PORT || 5000;
 
       if (process.env.NODE_ENV === "production" &&
+          !process.env.SKIP_HTTPS &&
           fs.existsSync("./certs/server.key") &&
           fs.existsSync("./certs/server.cert")) {
         const httpsOptions = {
