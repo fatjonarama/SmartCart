@@ -1,6 +1,5 @@
 /**
  * Integration Tests — Order Routes
- * Fix: Product.decrement dhe Product.increment janë të mock-uara
  */
 
 process.env.JWT_SECRET         = "test_secret";
@@ -306,5 +305,279 @@ describe("PUT /:id (admin update status)", () => {
       .set("Authorization", `Bearer ${userToken}`)
       .send({ status: "shipped" });
     expect(res.status).toBe(403);
+  });
+});
+
+// ══════════════════════════════════════════════════
+// 6. PATCH /:id/return — Return Request
+// ══════════════════════════════════════════════════
+describe("PATCH /:id/return", () => {
+
+  test("✅ happy path — return request dërgohet (200)", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 1, status: "pending",
+      update: jest.fn().mockResolvedValue(true)
+    });
+    const res = await request(testApp)
+      .patch("/1/return")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ note: "Produkti është i dëmtuar" });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain("✅");
+  });
+
+  test("❌ pa note → 400", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 1, status: "pending",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/1/return")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ note: "" });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toContain("detyrueshëm");
+  });
+
+  test("❌ order nuk ekziston → 404", async () => {
+    mockOrderFindByPk.mockResolvedValue(null);
+    const res = await request(testApp)
+      .patch("/99/return")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ note: "Defekt" });
+    expect(res.status).toBe(404);
+  });
+
+  test("❌ user tjetër → 403", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 999, status: "pending",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/1/return")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ note: "Defekt" });
+    expect(res.status).toBe(403);
+  });
+
+  test("❌ status cancelled → 400", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 1, status: "cancelled",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/1/return")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ note: "Defekt" });
+    expect(res.status).toBe(400);
+  });
+
+  test("❌ pa token → 401", async () => {
+    const res = await request(testApp)
+      .patch("/1/return")
+      .send({ note: "Defekt" });
+    expect(res.status).toBe(401);
+  });
+});
+
+// ══════════════════════════════════════════════════
+// 7. PATCH /:id/exchange — Exchange Request
+// ══════════════════════════════════════════════════
+describe("PATCH /:id/exchange", () => {
+
+  test("✅ happy path — exchange request (200)", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 1, status: "delivered",
+      update: jest.fn().mockResolvedValue(true)
+    });
+    const res = await request(testApp)
+      .patch("/1/exchange")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ reason: "size", note: "Madhësia nuk përshtatet" });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain("✅");
+  });
+
+  test("❌ pa reason → 400", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 1, status: "delivered",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/1/exchange")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ reason: "" });
+    expect(res.status).toBe(400);
+  });
+
+  test("❌ order nuk ekziston → 404", async () => {
+    mockOrderFindByPk.mockResolvedValue(null);
+    const res = await request(testApp)
+      .patch("/99/exchange")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ reason: "color" });
+    expect(res.status).toBe(404);
+  });
+
+  test("❌ user tjetër → 403", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 999, status: "delivered",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/1/exchange")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ reason: "size" });
+    expect(res.status).toBe(403);
+  });
+
+  test("❌ status cancelled → 400", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, user_id: 1, status: "cancelled",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/1/exchange")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ reason: "size" });
+    expect(res.status).toBe(400);
+  });
+
+  test("❌ pa token → 401", async () => {
+    const res = await request(testApp)
+      .patch("/1/exchange")
+      .send({ reason: "size" });
+    expect(res.status).toBe(401);
+  });
+});
+
+// ══════════════════════════════════════════════════
+// 8. GET /returns/all — Admin sheh returns
+// ══════════════════════════════════════════════════
+describe("GET /returns/all", () => {
+
+  test("✅ admin sheh listën (200)", async () => {
+    mockOrderFindAll.mockResolvedValue([
+      { id: 1, status: "return_requested", return_reason: "Defekt", User: { name: "Test" } }
+    ]);
+    const res = await request(testApp)
+      .get("/returns/all")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  test("✅ listë bosh (200)", async () => {
+    mockOrderFindAll.mockResolvedValue([]);
+    const res = await request(testApp)
+      .get("/returns/all")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  test("❌ user i zakonshëm → 403", async () => {
+    const res = await request(testApp)
+      .get("/returns/all")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  test("❌ pa token → 401", async () => {
+    const res = await request(testApp)
+      .get("/returns/all");
+    expect(res.status).toBe(401);
+  });
+});
+
+// ══════════════════════════════════════════════════
+// 9. PATCH /returns/:id/resolve — Admin zgjidh
+// ══════════════════════════════════════════════════
+describe("PATCH /returns/:id/resolve", () => {
+
+  test("✅ approve_refund (200)", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, status: "return_requested",
+      update: jest.fn().mockResolvedValue(true)
+    });
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "approve_refund", admin_note: "Aprovuar" });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain("aprovua");
+  });
+
+  test("✅ approve_exchange (200)", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, status: "return_requested",
+      update: jest.fn().mockResolvedValue(true)
+    });
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "approve_exchange", admin_note: "Exchange OK" });
+    expect(res.status).toBe(200);
+  });
+
+  test("✅ reject (200)", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, status: "return_requested",
+      update: jest.fn().mockResolvedValue(true)
+    });
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "reject", admin_note: "Nuk plotëson kushtet" });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain("refuzua");
+  });
+
+  test("❌ action invalid → 400", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, status: "return_requested",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "invalid_action" });
+    expect(res.status).toBe(400);
+  });
+
+  test("❌ order nuk është return_requested → 400", async () => {
+    mockOrderFindByPk.mockResolvedValue({
+      id: 1, status: "pending",
+      update: jest.fn()
+    });
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "approve_refund" });
+    expect(res.status).toBe(400);
+  });
+
+  test("❌ order nuk ekziston → 404", async () => {
+    mockOrderFindByPk.mockResolvedValue(null);
+    const res = await request(testApp)
+      .patch("/returns/99/resolve")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "approve_refund" });
+    expect(res.status).toBe(404);
+  });
+
+  test("❌ user i zakonshëm → 403", async () => {
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ action: "approve_refund" });
+    expect(res.status).toBe(403);
+  });
+
+  test("❌ pa token → 401", async () => {
+    const res = await request(testApp)
+      .patch("/returns/1/resolve")
+      .send({ action: "approve_refund" });
+    expect(res.status).toBe(401);
   });
 });

@@ -323,9 +323,8 @@ export default function MyOrders() {
               const sc              = getStatusColor(order.status);
               const canCancel       = ["pending","processing"].includes(order.status);
               const arrived         = isArrived(order);
-              const alreadyRequested = ["exchange","return"].includes(order.status);
-              const showExchangeReturn = canCancel && arrived && !alreadyRequested;
-
+              const alreadyRequested = ["exchange","return","return_requested","return_rejected","refunded"].includes(order.status);
+              const showExchangeReturn = arrived && !alreadyRequested && !["cancelled"].includes(order.status);
               return (
                 <div key={order.id} style={{ background:cardBg, border:`1px solid ${borderColor}`, borderRadius:"6px", overflow:"hidden" }}>
 

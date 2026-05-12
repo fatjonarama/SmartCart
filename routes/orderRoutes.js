@@ -29,11 +29,14 @@ const orderSchema = Joi.object({
 
 const updateStatusSchema = Joi.object({
   status: Joi.string()
-    .valid("pending","processing","shipped","delivered","cancelled","exchange","return")
+    .valid(
+      "pending","processing","shipped","delivered",
+      "cancelled","exchange","return",
+      "return_requested","return_rejected","refunded"
+    )
     .required()
 });
 
-// Helper — publiko event (i sigurt)
 const mqPublish = (queue, data) => {
   try {
     if (messageQueue.sendToQueue) messageQueue.sendToQueue(queue, data);
@@ -41,19 +44,70 @@ const mqPublish = (queue, data) => {
   } catch (e) { console.warn("MQ publish failed:", e.message); }
 };
 
-// Helper — pastro cache
 const flushProductCache = () => {
   try { if (productRoutes.cache) productRoutes.cache.flushAll(); } catch (e) {}
 };
+
+// ════════════════════════════════════════════════
+// ADMIN ROUTES — /returns/all dhe /returns/:id/resolve
+// ════════════════════════════════════════════════
+
+// A1. GET ALL RETURN REQUESTS (Admin)
+router.get("/returns/all", protect, authorizeRoles("admin"), async (req, res) => {
+  try {
+    const returns = await Order.findAll({
+      where: { status: "return_requested" },
+      include: [
+        { model: User, attributes: ["id","name","email"] },
+        { model: OrderItem }
+      ],
+      order: [["return_requested_at","DESC"]]
+    });
+    res.json(returns);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// A2. RESOLVE RETURN (Admin)
+router.patch("/returns/:id/resolve", protect, authorizeRoles("admin"), async (req, res) => {
+  try {
+    const { action, admin_note } = req.body;
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: "Porosia nuk u gjet!" });
+    if (order.status !== "return_requested")
+      return res.status(400).json({ message: "Kjo porosi nuk ka kërkesë aktive kthimi!" });
+
+    const statusMap = {
+      approve_refund:   "refunded",
+      approve_exchange: "exchange",
+      reject:           "return_rejected"
+    };
+    if (!statusMap[action])
+      return res.status(400).json({ message: "Action i pavlefshëm! Përdor: approve_refund, approve_exchange, reject" });
+
+    await order.update({
+      status:      statusMap[action],
+      admin_note:  admin_note || null,
+      resolved_at: new Date()
+    });
+
+    mqPublish("order.return.resolved", {
+      orderId: order.id, action, adminNote: admin_note,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({ message: `✅ Kërkesa u ${action === "reject" ? "refuzua" : "aprovua"}!`, order });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ════════════════════════════════════════════════
+// USER ROUTES
+// ════════════════════════════════════════════════
 
 // 1. GET ALL (Admin)
 router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const orders = await Order.findAll({
-      include: [
-        { model: OrderItem },
-        { model: User, attributes: ["id","name","email"] }
-      ],
+      include: [{ model: OrderItem }, { model: User, attributes: ["id","name","email"] }],
       order: [["created_at","DESC"]]
     });
     res.json(orders);
@@ -122,9 +176,13 @@ router.patch("/:id/return", protect, async (req, res) => {
     const { note } = req.body;
     if (!note?.trim()) return res.status(400).json({ message: "Përshkrimi i defektit është i detyrueshëm!" });
 
-    await order.update({ status: "return", admin_note: `[RETURN/DEFECT] ${note}` });
+    await order.update({
+      status:              "return_requested",
+      return_reason:       note,
+      return_requested_at: new Date()
+    });
     mqPublish("order.return", { orderId: order.id, userId: req.user.id, note, timestamp: new Date().toISOString() });
-    res.json({ message: "✅ Raporti u dërgua!", order });
+    res.json({ message: "✅ Raporti u dërgua te admini!", order });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -158,9 +216,9 @@ router.post("/", protect, async (req, res) => {
     }
 
     const order = await Order.create({
-      user_id: req.user.id,
+      user_id:        req.user.id,
       total_price,
-      status: "pending",
+      status:         "pending",
       payment_method: payment_method || "cash"
     });
 
@@ -199,7 +257,7 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     const oldStatus = order.status;
     const newStatus = req.body.status;
 
-    if (newStatus === "cancelled" && !["cancelled"].includes(oldStatus)) {
+    if (newStatus === "cancelled" && oldStatus !== "cancelled") {
       for (const item of order.OrderItems || []) {
         await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });
       }
@@ -218,7 +276,7 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     const order = await Order.findByPk(req.params.id, { include: OrderItem });
     if (!order) return res.status(404).json({ message: "Order nuk u gjet!" });
 
-    if (!["cancelled"].includes(order.status)) {
+    if (order.status !== "cancelled") {
       for (const item of order.OrderItems || []) {
         await Product.increment("stock", { by: item.quantity, where: { id: item.product_id } });
       }

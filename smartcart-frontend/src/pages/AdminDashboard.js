@@ -14,10 +14,10 @@ const AdminDashboard = () => {
   const [users,    setUsers]    = useState([]);
   const [products, setProducts] = useState([]);
   const [orders,   setOrders]   = useState([]);
+  const [returns,  setReturns]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Product modal
   const [showModal,    setShowModal]    = useState(false);
   const [modalType,    setModalType]    = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -27,7 +27,6 @@ const AdminDashboard = () => {
   const [dragOver,     setDragOver]     = useState(false);
   const fileInputRef = useRef(null);
 
-  // Add User modal
   const [showUserModal,  setShowUserModal]  = useState(false);
   const [userForm,       setUserForm]       = useState({ name: "", email: "", password: "", role: "user" });
   const [userFormErrors, setUserFormErrors] = useState({});
@@ -61,22 +60,40 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes, productsRes, ordersRes] = await Promise.all([
+      const [statsRes, usersRes, productsRes, ordersRes, returnsRes] = await Promise.all([
         axios.get("http://localhost:5000/api/v1/stats/overview", { headers }),
         axios.get("http://localhost:5000/api/v1/users", { headers }),
         axios.get("http://localhost:5000/api/v1/products", { headers }),
         axios.get("http://localhost:5000/api/v1/orders", { headers }),
+        axios.get("http://localhost:5000/api/v1/orders/returns/all", { headers }),
       ]);
       setStats(statsRes.data);
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.users || usersRes.data.data || []);
       setProducts(productsRes.data.data || productsRes.data);
       setOrders(ordersRes.data);
+      setReturns(Array.isArray(returnsRes.data) ? returnsRes.data : []);
       toast.success(t.dataLoaded);
     } catch { toast.error(t.errorLoading); }
     finally { setLoading(false); }
   };
 
-  // ── Image handlers ──────────────────────────
+  const handleResolveReturn = async (orderId, action, adminNote) => {
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/v1/orders/returns/${orderId}/resolve`,
+        { action, admin_note: adminNote || "" },
+        { headers }
+      );
+      setReturns(prev => prev.filter(r => r.id !== orderId));
+      const msgs = {
+        approve_refund:   "✅ Refund u aprovua!",
+        approve_exchange: "🔄 Exchange u aprovua!",
+        reject:           "❌ Kërkesa u refuzua."
+      };
+      toast.success(msgs[action]);
+    } catch (err) { toast.error(err.response?.data?.message || "❌ Gabim!"); }
+  };
+
   const handleImageFile = (file) => {
     if (!file) return;
     const allowed = ["image/jpeg","image/jpg","image/png","image/webp"];
@@ -93,7 +110,6 @@ const AdminDashboard = () => {
     if (file) handleImageFile(file);
   };
 
-  // ── Product modal ───────────────────────────
   const openEditProduct = (product) => {
     setSelectedItem(product);
     setFormData({ name: product.name || product.NAME, price: product.price, description: product.description || "", category: product.category || "", stock: product.stock });
@@ -120,13 +136,10 @@ const AdminDashboard = () => {
     if (!formData.name || formData.name.length < 2) { toast.error("❌ " + t.nameLabel + " " + t.required + "!"); return; }
     if (!formData.price || formData.price <= 0)      { toast.error("❌ " + t.priceLabel + " " + t.required + "!"); return; }
     try {
-      // Dërgojmë FormData për të mbështetur upload imazhi
       const fd = new FormData();
       Object.entries(formData).forEach(([k, v]) => { if (v !== undefined && v !== "") fd.append(k, v); });
       if (imageFile) fd.append("image", imageFile);
-
       const multiHeaders = { ...headers, "Content-Type": "multipart/form-data" };
-
       if (modalType === "editProduct") {
         const res = await axios.put(`http://localhost:5000/api/v1/products/${selectedItem.id}`, fd, { headers: multiHeaders });
         const updated = res.data.data || { ...selectedItem, ...formData, image_url: imagePreview };
@@ -141,7 +154,6 @@ const AdminDashboard = () => {
     } catch { toast.error(t.errorSaving); }
   };
 
-  // ── User handlers ───────────────────────────
   const handleAddUser = async () => {
     const errors = {};
     if (!userForm.name.trim() || userForm.name.length < 2) errors.name = "Name must be at least 2 characters.";
@@ -190,13 +202,16 @@ const AdminDashboard = () => {
 
   const getStatusColor = (status) => {
     const map = {
-      pending:    { color: "#FFC107", bg: "rgba(255,193,7,0.12)",  border: "rgba(255,193,7,0.3)"  },
-      processing: { color: "#2196F3", bg: "rgba(33,150,243,0.12)", border: "rgba(33,150,243,0.3)" },
-      shipped:    { color: "#FF9800", bg: "rgba(255,152,0,0.12)",  border: "rgba(255,152,0,0.3)"  },
-      delivered:  { color: "#4CAF50", bg: "rgba(76,175,80,0.12)",  border: "rgba(76,175,80,0.3)"  },
-      cancelled:  { color: "#F44336", bg: "rgba(244,67,54,0.12)",  border: "rgba(244,67,54,0.3)"  },
-      exchange:   { color: "#C9A84C", bg: "rgba(201,168,76,0.12)", border: "rgba(201,168,76,0.3)" },
-      return:     { color: "#FF9800", bg: "rgba(255,152,0,0.12)",  border: "rgba(255,152,0,0.3)"  },
+      pending:          { color: "#FFC107", bg: "rgba(255,193,7,0.12)",  border: "rgba(255,193,7,0.3)"  },
+      processing:       { color: "#2196F3", bg: "rgba(33,150,243,0.12)", border: "rgba(33,150,243,0.3)" },
+      shipped:          { color: "#FF9800", bg: "rgba(255,152,0,0.12)",  border: "rgba(255,152,0,0.3)"  },
+      delivered:        { color: "#4CAF50", bg: "rgba(76,175,80,0.12)",  border: "rgba(76,175,80,0.3)"  },
+      cancelled:        { color: "#F44336", bg: "rgba(244,67,54,0.12)",  border: "rgba(244,67,54,0.3)"  },
+      exchange:         { color: "#C9A84C", bg: "rgba(201,168,76,0.12)", border: "rgba(201,168,76,0.3)" },
+      return:           { color: "#FF9800", bg: "rgba(255,152,0,0.12)",  border: "rgba(255,152,0,0.3)"  },
+      return_requested: { color: "#FF5722", bg: "rgba(255,87,34,0.12)",  border: "rgba(255,87,34,0.3)"  },
+      return_rejected:  { color: "#F44336", bg: "rgba(244,67,54,0.12)",  border: "rgba(244,67,54,0.3)"  },
+      refunded:         { color: "#4CAF50", bg: "rgba(76,175,80,0.12)",  border: "rgba(76,175,80,0.3)"  },
     };
     return map[status] || { color: "#C9A84C", bg: "rgba(201,168,76,0.12)", border: "rgba(201,168,76,0.3)" };
   };
@@ -246,10 +261,14 @@ const AdminDashboard = () => {
 
         {/* TABS */}
         <div style={{ display: "flex", gap: "2px", marginBottom: "24px", borderBottom: `1px solid ${borderColor}`, overflowX: "auto" }}>
-          {["overview","orders","users","products"].map(tab => (
+          {["overview","orders","users","products","returns"].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               style={{ padding: isMobile ? "10px 12px" : "12px 24px", background: activeTab === tab ? "rgba(201,168,76,0.1)" : "transparent", color: activeTab === tab ? "#C9A84C" : grayColor, border: "none", borderBottom: activeTab === tab ? "2px solid #C9A84C" : "2px solid transparent", cursor: "pointer", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif", transition: "all 0.3s", whiteSpace: "nowrap", flexShrink: 0 }}>
-              {tab === "overview" ? `📊 ${isMobile ? "" : t.overview}` : tab === "orders" ? `🛒 ${isMobile ? "" : t.orders}` : tab === "users" ? `👥 ${isMobile ? "" : t.users}` : `📦 ${isMobile ? "" : t.productsLabel}`}
+              {tab === "overview" ? `📊 ${isMobile ? "" : t.overview}`
+               : tab === "orders"  ? `🛒 ${isMobile ? "" : t.orders}`
+               : tab === "users"   ? `👥 ${isMobile ? "" : t.users}`
+               : tab === "returns" ? `↩ ${isMobile ? "" : "Returns"}${returns.length > 0 ? ` (${returns.length})` : ""}`
+               : `📦 ${isMobile ? "" : t.productsLabel}`}
             </button>
           ))}
         </div>
@@ -297,13 +316,13 @@ const AdminDashboard = () => {
                         <td style={tdStyle}>{new Date(o.created_at||o.createdAt).toLocaleDateString("sq-AL")}</td>
                         <td style={tdStyle}>
                           <span style={{ padding:"3px 10px", borderRadius:"2px", background:sc.bg, color:sc.color, border:`1px solid ${sc.border}`, fontSize:"10px", letterSpacing:"1px", textTransform:"uppercase", whiteSpace:"nowrap" }}>
-                            {o.status==="exchange"?"⇄ Exchange":o.status==="return"?"↩ Return":o.status}
+                            {o.status==="exchange"?"⇄ Exchange":o.status==="return"?"↩ Return":o.status==="return_requested"?"↩ Return Req.":o.status==="return_rejected"?"✕ Rejected":o.status==="refunded"?"✅ Refunded":o.status}
                           </span>
                         </td>
                         <td style={tdStyle}>
                           <select value={o.status} onChange={e => updateOrderStatus(o.id, e.target.value)}
                             style={{ background:inputBg, border:`1px solid ${borderColor}`, borderRadius:"2px", color:textColor, padding:"4px 8px", fontSize:"11px", fontFamily:"Montserrat, sans-serif", cursor:"pointer", outline:"none" }}>
-                            {["pending","processing","shipped","delivered","cancelled","exchange","return"].map(s => <option key={s} value={s}>{s}</option>)}
+                            {["pending","processing","shipped","delivered","cancelled","exchange","return","return_requested","return_rejected","refunded"].map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </td>
                       </tr>
@@ -410,9 +429,76 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* RETURNS */}
+        {activeTab === "returns" && (
+          <div>
+            <h2 style={{ fontSize:"16px", fontWeight:"300", color:textColor, marginBottom:"16px", fontFamily:"Cormorant Garamond, serif" }}>
+              ↩ Return Requests — <span style={{ color:"#FF5722" }}>{returns.length} aktive</span>
+            </h2>
+            {returns.length === 0 ? (
+              <div style={{ padding:"80px 20px", textAlign:"center", color:grayColor }}>
+                <div style={{ fontSize:"48px", marginBottom:"16px", opacity:0.3 }}>✅</div>
+                <div style={{ fontSize:"16px", fontFamily:"Cormorant Garamond, serif", fontWeight:"300" }}>Nuk ka kërkesa aktive për kthim</div>
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
+                {returns.map(order => (
+                  <div key={order.id} style={{ background:cardBg, border:"1px solid rgba(255,87,34,0.2)", borderRadius:"6px", overflow:"hidden" }}>
+                    <div style={{ padding:"16px 24px", borderBottom:"1px solid rgba(255,87,34,0.15)", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"12px", background: isDark ? "rgba(255,87,34,0.04)" : "rgba(255,87,34,0.02)" }}>
+                      <div>
+                        <div style={{ fontSize:"10px", letterSpacing:"3px", color:"#FF5722", textTransform:"uppercase", marginBottom:"4px" }}>Porosi #{order.id}</div>
+                        <div style={{ fontSize:"15px", color:textColor, fontWeight:"500" }}>{order.User?.name || `User #${order.user_id}`}</div>
+                        <div style={{ fontSize:"11px", color:grayColor, marginTop:"2px" }}>{order.User?.email}</div>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:"10px", color:grayColor, letterSpacing:"1px", textTransform:"uppercase" }}>Totali</div>
+                        <div style={{ fontSize:"20px", fontFamily:"Cormorant Garamond, serif", color:"#C9A84C" }}>€{parseFloat(order.total_price).toFixed(2)}</div>
+                        <div style={{ fontSize:"10px", color:grayColor, marginTop:"4px" }}>
+                          {order.return_requested_at ? new Date(order.return_requested_at).toLocaleString("sq-AL") : "—"}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ padding:"16px 24px", borderBottom:"1px solid rgba(255,87,34,0.1)" }}>
+                      <div style={{ fontSize:"10px", letterSpacing:"2px", color:grayColor, textTransform:"uppercase", marginBottom:"8px" }}>Arsyeja e kthimit</div>
+                      <div style={{ fontSize:"13px", color:textColor, fontWeight:"300", lineHeight:"1.7", background: isDark ? "rgba(255,87,34,0.06)" : "rgba(255,87,34,0.04)", padding:"14px 16px", borderRadius:"4px", border:"1px solid rgba(255,87,34,0.1)", fontStyle:"italic" }}>
+                        "{order.return_reason || "—"}"
+                      </div>
+                    </div>
+                    <div style={{ padding:"16px 24px", display:"flex", flexDirection:isMobile?"column":"row", gap:"12px", alignItems:isMobile?"stretch":"flex-end" }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:"10px", letterSpacing:"2px", color:grayColor, textTransform:"uppercase", marginBottom:"6px" }}>Shënim për klientin (opsional)</div>
+                        <input
+                          placeholder="p.sh. Produkti do të zëvendësohet brenda 3 ditëve..."
+                          onChange={e => setReturns(prev => prev.map(r => r.id === order.id ? { ...r, _adminNote: e.target.value } : r))}
+                          style={{ width:"100%", padding:"10px 14px", background:inputBg, border:`1px solid ${borderColor}`, borderRadius:"2px", color:textColor, fontFamily:"Montserrat, sans-serif", fontSize:"12px", outline:"none", boxSizing:"border-box" }}
+                        />
+                      </div>
+                      <div style={{ display:"flex", gap:"8px", flexShrink:0, flexWrap:"wrap" }}>
+                        <button onClick={() => handleResolveReturn(order.id, "approve_refund", order._adminNote)}
+                          style={{ padding:"10px 16px", background:"rgba(76,175,80,0.1)", color:"#4CAF50", border:"1px solid rgba(76,175,80,0.3)", borderRadius:"2px", cursor:"pointer", fontSize:"10px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif", whiteSpace:"nowrap" }}>
+                          ✅ {isMobile ? "Refund" : "Aprovo Refund"}
+                        </button>
+                        <button onClick={() => handleResolveReturn(order.id, "approve_exchange", order._adminNote)}
+                          style={{ padding:"10px 16px", background:"rgba(201,168,76,0.1)", color:"#C9A84C", border:"1px solid rgba(201,168,76,0.3)", borderRadius:"2px", cursor:"pointer", fontSize:"10px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif", whiteSpace:"nowrap" }}>
+                          🔄 {isMobile ? "Exchange" : "Aprovo Exchange"}
+                        </button>
+                        <button onClick={() => handleResolveReturn(order.id, "reject", order._adminNote)}
+                          style={{ padding:"10px 16px", background:"rgba(244,67,54,0.1)", color:"#F44336", border:"1px solid rgba(244,67,54,0.3)", borderRadius:"2px", cursor:"pointer", fontSize:"10px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif", whiteSpace:"nowrap" }}>
+                          ❌ {isMobile ? "Refuzo" : "Refuzo Kërkesën"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
-      {/* ── ADD USER MODAL ── */}
+      {/* ADD USER MODAL */}
       {showUserModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:"16px" }}
           onClick={e => e.target===e.currentTarget && setShowUserModal(false)}>
@@ -458,7 +544,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ── PRODUCT MODAL me IMAGE UPLOAD ── */}
+      {/* PRODUCT MODAL */}
       {showModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:"16px" }}
           onClick={e => e.target===e.currentTarget && closeModal()}>
@@ -469,19 +555,13 @@ const AdminDashboard = () => {
               </h2>
               <button onClick={closeModal} style={{ background:"transparent", border:"none", color:grayColor, cursor:"pointer", fontSize:"20px" }}>✕</button>
             </div>
-
-            {/* ✅ IMAGE UPLOAD ZONE */}
             <div style={{ marginBottom:"20px" }}>
               <label style={labelStyle}>📷 Product Image (optional)</label>
-
-              {/* Drop zone */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
+              <div onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                style={{ width:"100%", height: imagePreview ? "180px" : "130px", border:`2px dashed ${dragOver?"#C9A84C":imagePreview?"rgba(201,168,76,0.5)":borderColor}`, borderRadius:"8px", cursor:"pointer", overflow:"hidden", position:"relative", background:dragOver?"rgba(201,168,76,0.05)":inputBg, transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", boxSizing:"border-box" }}
-              >
+                style={{ width:"100%", height: imagePreview ? "180px" : "130px", border:`2px dashed ${dragOver?"#C9A84C":imagePreview?"rgba(201,168,76,0.5)":borderColor}`, borderRadius:"8px", cursor:"pointer", overflow:"hidden", position:"relative", background:dragOver?"rgba(201,168,76,0.05)":inputBg, transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", boxSizing:"border-box" }}>
                 {imagePreview ? (
                   <>
                     <img src={imagePreview} alt="preview" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
@@ -499,10 +579,8 @@ const AdminDashboard = () => {
                   </div>
                 )}
               </div>
-
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={e => handleImageFile(e.target.files[0])} style={{ display:"none" }} />
-
               {imagePreview && (
                 <button onClick={() => { setImageFile(null); setImagePreview(null); }}
                   style={{ marginTop:"6px", fontSize:"10px", color:"#E57373", background:"none", border:"none", cursor:"pointer", padding:0, letterSpacing:"1px" }}>
@@ -510,8 +588,6 @@ const AdminDashboard = () => {
                 </button>
               )}
             </div>
-
-            {/* Fields */}
             {[
               { label:t.nameLabel,        key:"name",        type:"text",   required:true },
               { label:t.priceLabel,       key:"price",       type:"number", required:true },
@@ -530,14 +606,9 @@ const AdminDashboard = () => {
                 )}
               </div>
             ))}
-
             <div style={{ display:"flex", gap:"12px", marginTop:"20px" }}>
-              <button onClick={handleSaveProduct} style={{ flex:1, padding:"14px", background:"rgba(201,168,76,0.15)", color:"#C9A84C", border:"1px solid rgba(201,168,76,0.3)", borderRadius:"2px", cursor:"pointer", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif" }}>
-                {t.save}
-              </button>
-              <button onClick={closeModal} style={{ flex:1, padding:"14px", background:"transparent", color:grayColor, border:`1px solid ${isDark?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.1)"}`, borderRadius:"2px", cursor:"pointer", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif" }}>
-                {t.cancel}
-              </button>
+              <button onClick={handleSaveProduct} style={{ flex:1, padding:"14px", background:"rgba(201,168,76,0.15)", color:"#C9A84C", border:"1px solid rgba(201,168,76,0.3)", borderRadius:"2px", cursor:"pointer", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif" }}>{t.save}</button>
+              <button onClick={closeModal} style={{ flex:1, padding:"14px", background:"transparent", color:grayColor, border:`1px solid ${isDark?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.1)"}`, borderRadius:"2px", cursor:"pointer", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Montserrat, sans-serif" }}>{t.cancel}</button>
             </div>
           </div>
         </div>
