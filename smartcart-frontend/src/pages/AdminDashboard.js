@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -22,7 +22,10 @@ const AdminDashboard = () => {
   const [modalType,    setModalType]    = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [formData,     setFormData]     = useState({});
-  const [imageUrl,     setImageUrl]     = useState("");
+  const [imageFile,    setImageFile]    = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [dragOver,     setDragOver]     = useState(false);
+  const fileInputRef = useRef(null);
 
   const [showUserModal,  setShowUserModal]  = useState(false);
   const [userForm,       setUserForm]       = useState({ name: "", email: "", password: "", role: "user" });
@@ -91,53 +94,64 @@ const AdminDashboard = () => {
     } catch (err) { toast.error(err.response?.data?.message || "❌ Gabim!"); }
   };
 
+  const handleImageFile = (file) => {
+    if (!file) return;
+    const allowed = ["image/jpeg","image/jpg","image/png","image/webp"];
+    if (!allowed.includes(file.type)) { toast.error("Vetëm JPEG, PNG, WebP lejohen!"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Imazhi nuk mund të jetë më i madh se 5MB!"); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageFile(file);
+  };
+
   const openEditProduct = (product) => {
     setSelectedItem(product);
     setFormData({ name: product.name || product.NAME, price: product.price, description: product.description || "", category: product.category || "", stock: product.stock });
-    setImageUrl(product.image_url || "");
+    setImageFile(null);
+    setImagePreview(product.image_url || null);
     setModalType("editProduct");
     setShowModal(true);
   };
 
   const openAddProduct = () => {
     setFormData({ name: "", price: "", description: "", category: "", stock: 0 });
-    setImageUrl("");
+    setImageFile(null);
+    setImagePreview(null);
     setModalType("addProduct");
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false); setSelectedItem(null); setFormData({});
-    setModalType(null); setImageUrl("");
+    setModalType(null); setImageFile(null); setImagePreview(null);
   };
 
   const handleSaveProduct = async () => {
     if (!formData.name || formData.name.length < 2) { toast.error("❌ " + t.nameLabel + " " + t.required + "!"); return; }
     if (!formData.price || formData.price <= 0)      { toast.error("❌ " + t.priceLabel + " " + t.required + "!"); return; }
     try {
-      const payload = { ...formData };
-      if (imageUrl) payload.image_url = imageUrl;
-
+      const fd = new FormData();
+      Object.entries(formData).forEach(([k, v]) => { if (v !== undefined && v !== "") fd.append(k, v); });
+      if (imageFile) fd.append("image", imageFile);
+      const multiHeaders = { ...headers, "Content-Type": "multipart/form-data" };
       if (modalType === "editProduct") {
-        const res = await axios.put(
-          `https://smartcart-ks.up.railway.app/api/v1/products/${selectedItem.id}`,
-          payload,
-          { headers: { ...headers, "Content-Type": "application/json" } }
-        );
-        const updated = res.data.data || { ...selectedItem, ...payload };
+        const res = await axios.put(`https://smartcart-ks.up.railway.app/api/v1/products/${selectedItem.id}`, fd, { headers: multiHeaders });
+        const updated = res.data.data || { ...selectedItem, ...formData, image_url: imagePreview };
         setProducts(products.map(p => p.id === selectedItem.id ? { ...p, ...updated } : p));
         toast.success(t.productUpdated);
       } else {
-        const res = await axios.post(
-          "https://smartcart-ks.up.railway.app/api/v1/products",
-          payload,
-          { headers: { ...headers, "Content-Type": "application/json" } }
-        );
+        const res = await axios.post("https://smartcart-ks.up.railway.app/api/v1/products", fd, { headers: multiHeaders });
         setProducts([...products, res.data.data]);
         toast.success(t.productAdded);
       }
       closeModal();
-    } catch (err) { toast.error(err.response?.data?.message || t.errorSaving); }
+    } catch { toast.error(t.errorSaving); }
   };
 
   const handleAddUser = async () => {
@@ -481,6 +495,7 @@ const AdminDashboard = () => {
             )}
           </div>
         )}
+
       </div>
 
       {/* ADD USER MODAL */}
@@ -496,9 +511,9 @@ const AdminDashboard = () => {
               <button onClick={() => setShowUserModal(false)} style={{ background:"transparent", border:"none", color:grayColor, cursor:"pointer", fontSize:"20px" }}>✕</button>
             </div>
             {[
-              { label:"Full Name *",  key:"name",     type:"text",     placeholder:"Full name",         error:userFormErrors.name },
-              { label:"Email *",      key:"email",    type:"email",    placeholder:"email@example.com", error:userFormErrors.email },
-              { label:"Password *",   key:"password", type:"password", placeholder:"Min. 6 characters", error:userFormErrors.password },
+              { label:"Full Name *",  key:"name",     type:"text",     placeholder:"Full name",          error:userFormErrors.name },
+              { label:"Email *",      key:"email",    type:"email",    placeholder:"email@example.com",  error:userFormErrors.email },
+              { label:"Password *",   key:"password", type:"password", placeholder:"Min. 6 characters",  error:userFormErrors.password },
             ].map(f => (
               <div key={f.key} style={{ marginBottom:"16px" }}>
                 <label style={labelStyle}>{f.label}</label>
@@ -540,29 +555,39 @@ const AdminDashboard = () => {
               </h2>
               <button onClick={closeModal} style={{ background:"transparent", border:"none", color:grayColor, cursor:"pointer", fontSize:"20px" }}>✕</button>
             </div>
-
-            {/* IMAGE URL */}
             <div style={{ marginBottom:"20px" }}>
-              <label style={labelStyle}>📷 Image URL (optional)</label>
-              <input
-                type="text"
-                placeholder="https://images.unsplash.com/photo-...?w=400"
-                value={imageUrl}
-                onChange={e => setImageUrl(e.target.value)}
-                style={{ ...inputStyle, marginBottom:"8px" }}
-              />
-              {imageUrl && (
-                <div style={{ position:"relative", height:"160px", borderRadius:"4px", overflow:"hidden", border:`1px solid ${borderColor}` }}>
-                  <img src={imageUrl} alt="preview" style={{ width:"100%", height:"100%", objectFit:"cover" }}
-                    onError={e => e.target.style.display="none"} />
-                  <button onClick={() => setImageUrl("")}
-                    style={{ position:"absolute", top:"8px", right:"8px", background:"rgba(0,0,0,0.6)", border:"none", color:"#fff", cursor:"pointer", borderRadius:"2px", padding:"4px 8px", fontSize:"10px" }}>
-                    ✕ Hiq
-                  </button>
-                </div>
+              <label style={labelStyle}>📷 Product Image (optional)</label>
+              <div onClick={() => fileInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                style={{ width:"100%", height: imagePreview ? "180px" : "130px", border:`2px dashed ${dragOver?"#C9A84C":imagePreview?"rgba(201,168,76,0.5)":borderColor}`, borderRadius:"8px", cursor:"pointer", overflow:"hidden", position:"relative", background:dragOver?"rgba(201,168,76,0.05)":inputBg, transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", boxSizing:"border-box" }}>
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="preview" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                    <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.4)", display:"flex", alignItems:"center", justifyContent:"center", opacity:0, transition:"opacity 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.opacity="1"}
+                      onMouseLeave={e => e.currentTarget.style.opacity="0"}>
+                      <span style={{ color:"#fff", fontSize:"12px", letterSpacing:"2px", textTransform:"uppercase", fontWeight:"600" }}>Ndrysho Imazhin</span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign:"center", padding:"20px" }}>
+                    <div style={{ fontSize:"36px", marginBottom:"8px", opacity:0.4 }}>📷</div>
+                    <div style={{ fontSize:"11px", color:grayColor, fontWeight:"300", marginBottom:"4px" }}>Kliko ose tërhiq imazhin këtu</div>
+                    <div style={{ fontSize:"10px", color:grayColor, opacity:0.6 }}>JPEG · PNG · WebP · max 5MB</div>
+                  </div>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={e => handleImageFile(e.target.files[0])} style={{ display:"none" }} />
+              {imagePreview && (
+                <button onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  style={{ marginTop:"6px", fontSize:"10px", color:"#E57373", background:"none", border:"none", cursor:"pointer", padding:0, letterSpacing:"1px" }}>
+                  ✕ Hiq imazhin
+                </button>
               )}
             </div>
-
             {[
               { label:t.nameLabel,        key:"name",        type:"text",   required:true },
               { label:t.priceLabel,       key:"price",       type:"number", required:true },
