@@ -9,7 +9,6 @@ const Product = require("../models/Product");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const { redisClient } = require("../config/redis");
 
-// ── MULTER CONFIG ────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = "uploads/products";
@@ -30,7 +29,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// ── SCHEMAS ─────────────────────────────────────
 const productSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
   price: Joi.number().positive().required(),
@@ -47,21 +45,15 @@ const updateProductSchema = Joi.object({
   stock: Joi.number().integer().min(0).optional(),
 });
 
-// ── 1. GET ALL (Me Redis Caching, Search, Filter & Pagination) ──
 router.get("/", async (req, res) => {
   try {
     const { search, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
-    
     const cacheKey = `products_query_${JSON.stringify(req.query)}`;
 
-    // ✅ KONTROLLI NË REDIS
     try {
       const cachedData = await redisClient.get(cacheKey);
       if (cachedData) {
-        return res.json({ 
-          source: "Redis Cache", 
-          ...JSON.parse(cachedData) 
-        });
+        return res.json({ source: "Redis Cache", ...JSON.parse(cachedData) });
       }
     } catch (redisErr) {
       console.error("Redis Get Error:", redisErr);
@@ -70,7 +62,6 @@ router.get("/", async (req, res) => {
     const where = {};
     if (search) where.name = { [Op.like]: `%${search}%` };
     if (category) where.category = category;
-    
     if (minPrice || maxPrice) {
       where.price = {};
       if (minPrice) where.price[Op.gte] = parseFloat(minPrice);
@@ -84,8 +75,8 @@ router.get("/", async (req, res) => {
     const { count, rows } = await Product.findAndCountAll({
       where,
       limit: limitNum,
-      offset: offset,
-      order: [["created_at", "DESC"]] 
+      offset,
+      order: [["created_at", "DESC"]]
     });
 
     const result = {
@@ -98,9 +89,8 @@ router.get("/", async (req, res) => {
       }
     };
 
-    // ✅ RUJTJA NË REDIS (Skadon pas 1 ore)
     try {
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
+      await redisClient.setEx(cacheKey, 60, JSON.stringify(result));
     } catch (redisErr) {
       console.error("Redis Set Error:", redisErr);
     }
@@ -111,11 +101,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ── 2. GET BY ID ──────────────────────────────────
 router.get("/:id", async (req, res) => {
   try {
     const cacheKey = `product_${req.params.id}`;
-    
     try {
       const cached = await redisClient.get(cacheKey);
       if (cached) return res.json({ source: "Redis Cache", data: JSON.parse(cached) });
@@ -127,18 +115,17 @@ router.get("/:id", async (req, res) => {
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
 
     try {
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
+      await redisClient.setEx(cacheKey, 60, JSON.stringify(product));
     } catch (redisErr) {
       console.error("Redis Set Error:", redisErr);
     }
-    
+
     res.json({ source: "Database", data: product });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ── 3. CREATE (Admin Only) ────────────────────────
 router.post("/", protect, authorizeRoles("admin"), upload.single("image"), async (req, res) => {
   const { error } = productSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -149,20 +136,13 @@ router.post("/", protect, authorizeRoles("admin"), upload.single("image"), async
       : null;
 
     const product = await Product.create({ ...req.body, image_url });
-    
-    try {
-      await redisClient.flushAll();
-    } catch (redisErr) {
-      console.error("Redis Flush Error:", redisErr);
-    }
-    
+    try { await redisClient.flushAll(); } catch (e) {}
     res.status(201).json({ message: "✅ Produkti u krijua!", data: product });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ── 4. UPDATE (Admin Only) ────────────────────────
 router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), async (req, res) => {
   const { error } = updateProductSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -172,7 +152,6 @@ router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), asy
     if (!product) return res.status(404).json({ message: "Produkti nuk u gjet!" });
 
     const updateData = { ...req.body };
-
     if (req.file) {
       if (product.image_url) {
         const oldPath = path.join("uploads/products", path.basename(product.image_url));
@@ -182,20 +161,13 @@ router.put("/:id", protect, authorizeRoles("admin"), upload.single("image"), asy
     }
 
     await product.update(updateData);
-    
-    try {
-      await redisClient.flushAll();
-    } catch (redisErr) {
-      console.error("Redis Flush Error:", redisErr);
-    }
-    
+    try { await redisClient.flushAll(); } catch (e) {}
     res.json({ message: "✅ Produkti u përditësua!", data: product });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ── 5. DELETE (Admin Only) ────────────────────────
 router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);
@@ -207,13 +179,7 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     }
 
     await product.destroy();
-    
-    try {
-      await redisClient.flushAll();
-    } catch (redisErr) {
-      console.error("Redis Flush Error:", redisErr);
-    }
-    
+    try { await redisClient.flushAll(); } catch (e) {}
     res.json({ message: "✅ Produkti u fshi me sukses!" });
   } catch (err) {
     res.status(500).json({ message: err.message });
